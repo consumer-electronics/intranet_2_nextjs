@@ -74,7 +74,7 @@ export const menuItems = [
       { key: 'rrhh-desprendibles', label: 'Desprendibles de nómina', icon: ReceiptLongIcon, href: '/rrhh/desprendibles' },
       { key: 'rrhh-reglamentos', label: 'Reglamentos', icon: GavelIcon, href: '/rrhh/reglamentos' },
       { key: 'rrhh-porteria', label: 'Portería', icon: SecurityIcon, href: '/rrhh/permisos-porteria' },
-      { key: 'rrhh-admin-contenidos', label: 'Admin. Contenidos', icon: ArticleIcon, href: '/administracion/contenidos' },
+      // { key: 'rrhh-admin-contenidos', label: 'Admin. Contenidos', icon: ArticleIcon, href: '/administracion/contenidos' },
     ],
   },
   {

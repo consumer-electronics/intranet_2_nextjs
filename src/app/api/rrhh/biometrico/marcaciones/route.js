@@ -29,10 +29,13 @@ async function resolveUser(request) {
             userObj?.id_usuario ??
             null,
         geminus:
+            userObj?.useryem ??
             userObj?.fun_empleado_geminus ??
             userObj?.id_geminus ??
             userObj?.geminus ??
             null,
+        nombre: userObj?.name ?? userObj?.fun_nombre ?? '',
+        apellido: userObj?.fun_apellido ?? '',
     };
 }
 
@@ -106,10 +109,30 @@ export async function POST(request) {
                     cache: 'no-store',
                 });
                 const textLista = await resLista.text();
-                // Buscar: onClick='biometricoUsuario(3329, "Nombre")'
-                const match = textLista.match(/biometricoUsuario\(\s*['"]?(\d+)['"]?\s*,/);
-                if (match && match[1]) {
-                    targetId = match[1];
+
+                // Buscar: onClick='biometricoUsuario(3329, "Nombre Apellido")'
+                const regex = /biometricoUsuario\(\s*['"]?(\d+)['"]?\s*,\s*['"]([^'"]+)['"]/g;
+                let match;
+                let foundId = null;
+
+                const userNombre = (user.nombre || '').toLowerCase().trim();
+                const userApellido = (user.apellido || '').toLowerCase().trim();
+
+                while ((match = regex.exec(textLista)) !== null) {
+                    const idMatch = match[1];
+                    const nameMatch = match[2].toLowerCase();
+
+                    if (!foundId) foundId = idMatch; // Guardar el primero por si acaso
+
+                    if (userNombre && nameMatch.includes(userNombre) &&
+                        (!userApellido || nameMatch.includes(userApellido))) {
+                        foundId = idMatch; // Coincidencia exacta con el usuario logueado
+                        break;
+                    }
+                }
+
+                if (foundId) {
+                    targetId = foundId;
                 }
             } catch (err) {
                 console.error('[Biometrico] Error en fallback listaUsuario:', err);

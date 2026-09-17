@@ -33,6 +33,7 @@ export default function WelcomeCard() {
   return (
     <Card
       sx={{
+        height: '100%',
         border: '1px solid',
         borderColor: 'divider',
         boxShadow: '0 4px 20px rgba(0,0,0,0.04)',

@@ -9,7 +9,7 @@ import BirthdaySection from './BirthdaySection';
 import InstitutionalVideo from './InstitutionalVideo';
 import PresidentMessage from './PresidentMessage';
 import CompanyInfo from './CompanyInfo';
-import DashboardHome from '../dashboard/DashboardHome';
+import TrmMiniWidget from '../dashboard/TrmMiniWidget';
 
 /**
  * src/components/home/HomeView.jsx
@@ -18,18 +18,22 @@ import DashboardHome from '../dashboard/DashboardHome';
  * APIs de navegador directamente, solo compone client components
  * que sí los necesitan (WelcomeCard, BirthdaySection).
  *
- * Jerarquía: bienvenida → contenido destacado/noticias/TRM → acciones frecuentes + cumpleaños →
+ * Jerarquía: bienvenida y TRM → acciones frecuentes + cumpleaños →
  * contenido institucional (video + carta) → información corporativa.
  */
 export default function HomeView() {
   return (
     <Box sx={{ width: '100%', py: 2 }}>
       <Stack spacing={4}>
-        {/* BIENVENIDA */}
-        <WelcomeCard />
-
-        {/* NOTICIAS, DESTACADOS Y TRM */}
-        <DashboardHome />
+        {/* BIENVENIDA Y TRM */}
+        <Grid container spacing={3} alignItems="stretch">
+          <Grid size={{ xs: 12, md: 8, lg: 9 }}>
+            <WelcomeCard />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4, lg: 3 }}>
+            <TrmMiniWidget />
+          </Grid>
+        </Grid>
 
         {/* ACCIONES + CUMPLEAÑOS */}
         <Grid container spacing={3} sx={{ alignItems: 'stretch' }}>

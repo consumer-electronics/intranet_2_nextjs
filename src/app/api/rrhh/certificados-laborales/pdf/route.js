@@ -10,11 +10,11 @@ const LEGACY_ENDPOINT = `${(LEGACY_BASE_URL || '').replace(/\/+$/, '')}/pantalla
  * de forma interna (mismo patrón que desprendibles/route.js).
  */
 async function resolveUser(request) {
-    const cookieHeader = request.headers.get('cookie') ?? '';
-    const meRes = await fetch(new URL('/api/auth/me', request.url), {
-        headers: { cookie: cookieHeader },
-        cache: 'no-store',
-    });
+    const __token = (request.headers.get('cookie') || '').match(/access_token=([^;]+)/)?.[1];
+        const meRes = await fetch(`${(process.env.API_NODE || '').replace(/\/+$/, '')}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${__token}`, Accept: 'application/json' },
+            cache: 'no-store',
+        });
 
     if (!meRes.ok) return null;
 

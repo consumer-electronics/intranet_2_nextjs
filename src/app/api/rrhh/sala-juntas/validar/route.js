@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const BACKEND_BASE_URL = (
-    process.env.RUTA_API_DEV
+    process.env.URL_DYNAMICS
 ).replace(/\/+$/, '');
 
 const LEGACY_SALA_JUNTAS_URL = `${BACKEND_BASE_URL}/pantallas/intranet/paginas/gestion_humana/sala_juntas.php`;
@@ -30,7 +30,7 @@ export async function POST(request) {
             return NextResponse.json(
                 {
                     error:
-                        'No está configurada la variable RUTA_API.',
+                        'No está configurada la variable URL_DYNAMICS.',
                 },
                 { status: 500 },
             );

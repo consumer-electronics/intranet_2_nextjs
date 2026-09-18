@@ -4,10 +4,10 @@ export const runtime = 'nodejs';
 
 const getBaseUrl = () => {
     let url = process.env.NODE_ENV === 'development' 
-        ? process.env.RUTA_API_DEV 
-        : process.env.RUTA_API;
+        ? process.env.URL_DYNAMICS 
+        : process.env.URL_DYNAMICS;
     if (!url && process.env.NODE_ENV === 'development') {
-        url = process.env.RUTA_API;
+        url = process.env.URL_DYNAMICS;
     }
     return url ? url.replace(/\/$/, '') : '';
 };

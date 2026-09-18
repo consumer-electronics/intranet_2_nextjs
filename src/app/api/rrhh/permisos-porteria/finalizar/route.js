@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const LEGACY_BASE_URL = process.env.RUTA_API_DEV;
+const LEGACY_BASE_URL = process.env.URL_DYNAMICS;
 const LEGACY_ENDPOINT = `${LEGACY_BASE_URL.replace(/\/+$/, '')}/pantallas/intranet/paginas/gestion_humana/solicitud_permisos.php`;
 
 export async function POST(request) {

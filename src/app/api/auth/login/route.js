@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 
 // TODO: mover posteriormente a process.env.AUTH_BACKEND_URL
-const AUTH_BACKEND_URL = process.env.API_NODE;
+const AUTH_BACKEND_URL = `${(process.env.API_NODE || '').replace(/\/+$/, '')}/api/auth`;
 
 const ACCESS_TOKEN_COOKIE = 'access_token';
 const REFRESH_TOKEN_COOKIE = 'refresh_token';

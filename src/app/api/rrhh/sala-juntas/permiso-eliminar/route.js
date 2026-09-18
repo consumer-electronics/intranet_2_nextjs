@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.RUTA_API_DEV;
+const BACKEND_URL = process.env.URL_DYNAMICS;
 
 export async function GET(request) {
     try {
@@ -9,7 +9,7 @@ export async function GET(request) {
                 {
                     permitido: false,
                     error:
-                        'No está configurada la variable RUTA_API.',
+                        'No está configurada la variable URL_DYNAMICS.',
                 },
                 { status: 500 },
             );

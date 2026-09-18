@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 // TODO: mover a variable de entorno.
-const DYNAMICS_API_URL = process.env.RUTA_API_DEV;
+const DYNAMICS_API_URL = process.env.URL_DYNAMICS;
 
 export async function PATCH(request) {
   try {

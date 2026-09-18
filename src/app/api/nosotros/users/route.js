@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const DYNAMICS_BASE_URL = process.env.RUTA_API;
+const DYNAMICS_BASE_URL = process.env.URL_DYNAMICS;
 
 export const runtime = 'nodejs';
 
@@ -30,9 +30,9 @@ function parseJsonClean(rawText) {
 
 export async function GET() {
     if (!DYNAMICS_BASE_URL) {
-        console.error('[NOSOTROS] RUTA_API no está configurada');
+        console.error('[NOSOTROS] URL_DYNAMICS no está configurada');
         return NextResponse.json(
-            { message: 'RUTA_API no está configurada' },
+            { message: 'URL_DYNAMICS no está configurada' },
             { status: 500 }
         );
     }

@@ -26,7 +26,7 @@ export async function GET(request) {
             return NextResponse.json({ error: 'No se pudo identificar la cédula del usuario' }, { status: 401 });
         }
 
-        const baseUrl = process.env.RUTA_API.endsWith('/') ? process.env.RUTA_API : `${process.env.RUTA_API}/`;
+        const baseUrl = process.env.URL_DYNAMICS.endsWith('/') ? process.env.URL_DYNAMICS : `${process.env.URL_DYNAMICS}/`;
         const dynamicsUrl = `${baseUrl}pantallas/intranet/paginas/gestion_humana/desprendibles_nomina.php`;
 
         console.log('[DEBUG /api/rrhh/desprendibles] URL consultada en Dynamics:', dynamicsUrl);

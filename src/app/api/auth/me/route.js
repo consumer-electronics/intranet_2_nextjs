@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
 
-const AUTH_BACKEND_URL = process.env.API_NODE;
+const AUTH_BACKEND_URL = `${(process.env.API_NODE || '').replace(/\/+$/, '')}/api/auth`;
 
 export async function GET() {
     const cookieStore = await cookies();

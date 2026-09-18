@@ -277,7 +277,7 @@ function LoginForm() {
 
             {/* Login con google deshabilitado hasta que se revisen los correos asociados a los funccionarios */}
 
-            {/* <Divider sx={{ my: 3, typography: 'body2', color: 'text.secondary' }}>O ingresa con</Divider>
+            <Divider sx={{ my: 3, typography: 'body2', color: 'text.secondary' }}>O ingresa con</Divider>
 
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <GoogleLogin
@@ -300,7 +300,7 @@ function LoginForm() {
                 size="large"
                 locale="es"
               />
-            </Box> */}
+            </Box>
           </Box>
 
           <PasswordRecoveryDialogs open={openRecovery} onClose={() => setOpenRecovery(false)} />

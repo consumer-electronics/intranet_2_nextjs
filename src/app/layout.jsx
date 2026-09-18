@@ -12,7 +12,7 @@ const roboto = Roboto({
 });
 
 export const metadata = {
-  title: 'Intranet',
+  title: 'CEG | Intranet',
   description: 'Intranet corporativa',
 };
 

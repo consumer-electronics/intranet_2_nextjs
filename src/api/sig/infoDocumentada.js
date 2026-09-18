@@ -1,14 +1,14 @@
 import { apiFetch } from '@/utils/Fetchclient';
 
-export async function fetchEstructuraGeneral(filtro = '', ruta = '') {
+export async function fetchEstructuraGeneral(filtro = '', url = '') {
     const params = new URLSearchParams();
     if (filtro) params.set('filtro', filtro);
-    if (ruta) params.set('ruta', ruta);
+    if (url) params.set('url', url);
 
     const query = params.toString() ? `?${params.toString()}` : '';
 
     return apiFetch(
-        `/api/sig/info-documentada/documentos-generales${query}`,
+        `/api/sig/documentos-proxy${query}`,
         {
             method: 'GET',
         }

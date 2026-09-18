@@ -1,12 +1,14 @@
-const SIG_FILES_BASE_URL = process.env.NEXT_PUBLIC_SIG_FILES_BASE_URL || 'https://dynamics.appceg.com';
-export const RUTA_DOCUMENTOS_RAIZ =
-    process.env.NEXT_PUBLIC_SIG_DOCUMENTOS_GENERALES_PATH || '/sig/2. Documentos generales';
-
 export function construirRutaBase(carpetaBase) {
-    return carpetaBase ? `${RUTA_DOCUMENTOS_RAIZ}/${carpetaBase}` : RUTA_DOCUMENTOS_RAIZ;
+    if (!carpetaBase) return 'https://dynamics.appceg.com/sig/2.%20Documentos%20generales/';
+    if (carpetaBase.startsWith('http')) return carpetaBase;
+    return `https://dynamics.appceg.com/sig/2.%20Documentos%20generales/${encodeURIComponent(carpetaBase)}/`;
 }
 
 export function construirUrlArchivo(rutaBase, rutaCarpetas, archivo) {
-    const segmentos = [rutaBase, ...rutaCarpetas.map(encodeURIComponent), encodeURIComponent(archivo)];
-    return `${SIG_FILES_BASE_URL}${segmentos.join('/')}`;
+    const base = rutaBase.endsWith('/') ? rutaBase : `${rutaBase}/`;
+    if (rutaCarpetas.length === 0) {
+        return `${base}${encodeURIComponent(archivo)}`;
+    }
+    const segmentos = [...rutaCarpetas.map(encodeURIComponent), encodeURIComponent(archivo)];
+    return `${base}${segmentos.join('/')}`;
 }

@@ -35,16 +35,33 @@ export async function GET(request) {
             return NextResponse.json({ error: 'No tienes permiso para acceder a este archivo' }, { status: 403 });
         }
 
-        const storageBase = process.env.STORAGE_PATH || '\\\\192.168.1.141\\htdocs\\ceg\\almacenamiento';
-        const filePath = require('path').join(storageBase, 'desprendibles', fileName);
+        // Proxy to Legacy PHP instead of local filesystem
+        const baseUrl = process.env.URL_DYNAMICS.endsWith('/') ? process.env.URL_DYNAMICS : `${process.env.URL_DYNAMICS}/`;
+        const legacyEndpoint = `${baseUrl}pantallas/intranet/paginas/gestion_humana/obtener_documento.php`;
         
-        let fileBuffer;
-        try {
-            fileBuffer = await require('fs').promises.readFile(filePath);
-        } catch (err) {
-            console.error('[GET /api/rrhh/desprendibles/download] Archivo no encontrado:', filePath, err);
+        const internalSecret = process.env.DYNAMICS_INTERNAL_SECRET || '';
+
+        const formData = new URLSearchParams();
+        formData.append('user', cedula);
+        formData.append('file', fileName);
+        formData.append('internal_secret', internalSecret);
+        if (forceDownload) {
+            formData.append('download', 'true');
+        }
+
+        const legacyRes = await fetch(legacyEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData,
+            cache: 'no-store'
+        });
+
+        if (!legacyRes.ok) {
+            console.error('[GET /api/rrhh/desprendibles/download] Legacy retornó status:', legacyRes.status);
             return NextResponse.json({ error: 'El documento no se encuentra disponible en el servidor' }, { status: 404 });
         }
+
+        const fileBuffer = await legacyRes.arrayBuffer();
 
         return new NextResponse(fileBuffer, {
             status: 200,

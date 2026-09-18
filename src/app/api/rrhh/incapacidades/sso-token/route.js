@@ -4,7 +4,7 @@ import { createHmac } from 'crypto';
 
 export const runtime = 'nodejs';
 
-const AUTH_BACKEND_URL = process.env.API_NODE;
+const AUTH_BACKEND_URL = `${(process.env.API_NODE || '').replace(/\/+$/, '')}/api/auth`;
 // URL del módulo de incapacidades (destino en el portal)
 const PORTAL_URL = process.env.URL_PORTAL_INCAPACIDADES;
 // Secret compartido con el portal — coincide con JWT_SECRET_PORTAL_FINANCIERO en dynamics-node

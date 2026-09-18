@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-const LEGACY_BASE_URL = process.env.RUTA_API;
+const LEGACY_BASE_URL = process.env.URL_DYNAMICS;
 const LEGACY_ENDPOINT = `${LEGACY_BASE_URL.replace(/\/+$/, '')}/pantallas/intranet/paginas/biometrico/index.php`;
 
 export async function POST(request) {

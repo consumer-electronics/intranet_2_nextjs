@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const LEGACY_BASE_URL = process.env.RUTA_API_DEV;
+const LEGACY_BASE_URL = process.env.URL_DYNAMICS;
 
 /**
  * Obtiene y parsea los datos de la encuesta CRESER desde Dynamics.

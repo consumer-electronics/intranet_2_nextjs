@@ -5,12 +5,12 @@ export const runtime = 'nodejs';
 // Configurar URL base dependiendo del entorno
 const getBaseUrl = () => {
     let url = process.env.NODE_ENV === 'development' 
-        ? process.env.RUTA_API_DEV 
-        : process.env.RUTA_API;
+        ? process.env.URL_DYNAMICS 
+        : process.env.URL_DYNAMICS;
     
     // Fallback si no está definida en dev
     if (!url && process.env.NODE_ENV === 'development') {
-        url = process.env.RUTA_API;
+        url = process.env.URL_DYNAMICS;
     }
     
     // Remover slash al final si existe

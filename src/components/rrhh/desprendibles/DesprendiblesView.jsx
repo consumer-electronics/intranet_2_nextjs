@@ -10,7 +10,9 @@ import { useTheme } from '@mui/material/styles';
 
 import { useDesprendibles } from '@/hooks/rrhh/useDesprendibles';
 import PayslipCard from './PayslipCard';
-import PayslipPreviewModal from './PayslipPreviewModal';
+import dynamic from 'next/dynamic';
+
+const PayslipPreviewModal = dynamic(() => import('./PayslipPreviewModal'), { ssr: false });
 
 export default function DesprendiblesView() {
     const theme = useTheme();

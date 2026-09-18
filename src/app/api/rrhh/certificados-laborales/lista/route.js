@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-const LEGACY_BASE_URL = process.env.RUTA_API;
+const LEGACY_BASE_URL = process.env.URL_DYNAMICS;
 const LEGACY_ENDPOINT = `${(LEGACY_BASE_URL || '').replace(/\/+$/, '')}/pantallas/intranet/paginas/gestion_humana/certificados_laborales.php`;
 
 // Tiempo de vida del caché del listado (ms). El listado de funcionarios

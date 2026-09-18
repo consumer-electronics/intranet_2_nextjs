@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-const LEGACY_BASE_URL = process.env.RUTA_API_DEV;
+const LEGACY_BASE_URL = process.env.URL_DYNAMICS;
 const LEGACY_ENDPOINT = `${LEGACY_BASE_URL.replace(/\/+$/, '')}/app/funciones.php`;
 
 /**

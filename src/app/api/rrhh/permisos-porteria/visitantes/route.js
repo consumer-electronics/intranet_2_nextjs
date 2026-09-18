@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const DYNAMICS_API_URL = process.env.RUTA_API_2;
+const DYNAMICS_API_URL = process.env.API_NODE;
 
 export async function GET(request) {
   try {

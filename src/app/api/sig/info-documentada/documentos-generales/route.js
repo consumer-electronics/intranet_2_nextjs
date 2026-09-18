@@ -40,7 +40,7 @@ export async function GET(request) {
         const ruta = searchParams.get('ruta') || '';
         const docsRoot = process.env.SIG_UNC_PATH_DOCUMENTOS_GENERALES || '\\\\192.168.1.141\\htdocs\\sig\\2. Documentos generales';
         // Evita que "ruta" pueda salirse de docsRoot (path traversal, ej: "../../../etc")
-        const docsDir = path.normalize(path.join(docsRoot, ruta));
+        const docsDir = path.normalize(path.join(/*turbopackIgnore: true*/ docsRoot, ruta));
         if (!docsDir.startsWith(docsRoot)) {
             return NextResponse.json(
                 { success: false, message: 'Ruta no válida.' },

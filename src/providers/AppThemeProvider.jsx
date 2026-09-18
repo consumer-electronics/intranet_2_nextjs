@@ -20,8 +20,7 @@ export default function AppThemeProvider({ children }) {
     if (savedMode === 'light' || savedMode === 'dark') {
       setMode(savedMode);
     } else {
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setMode(systemPrefersDark ? 'dark' : 'light');
+      setMode('light');
     }
     setMounted(true);
   }, []);

@@ -1,52 +1,73 @@
-import fs from 'fs';
-import path from 'path';
 import { NextResponse } from 'next/server';
 
 /** Extensiones de video que se muestran en el explorador */
 const EXTENSIONES_VIDEO = new Set(['.mp4', '.webm', '.ogg', '.avi', '.mov', '.mkv', '.wmv']);
 
 function esVideo(nombre) {
-    return EXTENSIONES_VIDEO.has(path.extname(nombre).toLowerCase());
+    const extMatch = nombre.match(/\.[^.]+$/);
+    if (!extMatch) return false;
+    return EXTENSIONES_VIDEO.has(extMatch[0].toLowerCase());
 }
 
 /**
- * Escanea un directorio recursivamente y devuelve el árbol de carpetas/videos.
- * Formato idéntico al de SIG/documentos-generales:
- *  - Carpeta: { "Nombre carpeta": [...subcontenido] }
- *  - Video:   { video: "nombre.mp4" }
- *
- * Si hay un filtro activo, devuelve la lista aplanada solo de videos que coinciden.
+ * Escanea el directorio expuesto vía HTTP de Apache recursivamente parseando el HTML (autoindex).
+ * Resuelve el problema de acceso a sistema de archivos local en el servidor de producción.
  */
-function buildTree(dirPath, filter = '') {
-    const filterLower = filter.toLowerCase();
+async function scrapeTree(baseUrl, filterLower) {
+    const result = [];
+    try {
+        // Añadir header para evitar caché
+        const response = await fetch(baseUrl, { cache: 'no-store' });
+        if (!response.ok) return result;
+        const html = await response.text();
 
-    function traverseDir(currentPath) {
-        if (!fs.existsSync(currentPath)) return [];
-        const entries = fs.readdirSync(currentPath, { withFileTypes: true });
-        const result = [];
+        // Extraer los enlaces de la tabla del autoindex de Apaxy/Apache
+        const regex = /<td class="indexcolname"><a href="([^"]+)">([^<]+)<\/a><\/td>/g;
+        let match;
+        
+        const dirPromises = [];
 
-        for (const entry of entries) {
-            // Ignorar archivos del sistema
-            if (entry.name.startsWith('.') || entry.name === 'Thumbs.db' || entry.name === 'desktop.ini') continue;
+        while ((match = regex.exec(html)) !== null) {
+            let href = match[1];
+            let name = match[2];
+            
+            // Ignorar "Parent Directory" o ordenamientos
+            if (href.startsWith('?') || href === '/' || href === '../' || name === 'Parent Directory') continue;
+            
+            href = decodeURIComponent(href.replace(/&amp;/g, '&'));
+            name = decodeURIComponent(name.replace(/&amp;/g, '&'));
 
-            const fullPath = path.join(currentPath, entry.name);
-
-            if (entry.isDirectory()) {
-                const subContent = traverseDir(fullPath);
-                if (!filterLower || subContent.length > 0 || entry.name.toLowerCase().includes(filterLower)) {
-                    result.push({ [entry.name]: subContent });
-                }
-            } else if (entry.isFile() && esVideo(entry.name)) {
-                if (!filterLower || entry.name.toLowerCase().includes(filterLower)) {
-                    result.push({ video: entry.name });
+            if (href.endsWith('/')) {
+                const folderName = name.replace(/\/$/, '');
+                
+                // Promesa recursiva para procesar subdirectorios en paralelo
+                dirPromises.push((async () => {
+                    const subUrl = baseUrl.endsWith('/') ? baseUrl + href : baseUrl + '/' + href;
+                    const subContent = await scrapeTree(subUrl, filterLower);
+                    
+                    if (!filterLower || subContent.length > 0 || folderName.toLowerCase().includes(filterLower)) {
+                        return { [folderName]: subContent };
+                    }
+                    return null;
+                })());
+            } else if (esVideo(name)) {
+                if (!filterLower || name.toLowerCase().includes(filterLower)) {
+                    result.push({ video: name });
                 }
             }
         }
 
-        return result;
+        // Esperar que terminen todos los escaneos de subdirectorios
+        const folders = await Promise.all(dirPromises);
+        for (const f of folders) {
+            if (f) result.push(f);
+        }
+        
+    } catch (e) {
+        console.error("[AYUDA][VIDEOS] Error scraping " + baseUrl, e.message);
     }
-
-    return traverseDir(dirPath);
+    
+    return result;
 }
 
 export async function GET(request) {
@@ -54,31 +75,19 @@ export async function GET(request) {
         const { searchParams } = new URL(request.url);
         const filtro = searchParams.get('filtro') || '';
 
-        const videosRoot = process.env.AYUDA_VIDEOS_PATH;
+        // Usar la URL pública expuesta por Apache en lugar del path local (fs)
+        const baseUrl = process.env.NEXT_PUBLIC_AYUDA_VIDEOS_BASE_URL;
 
-        if (!videosRoot) {
+        if (!baseUrl) {
             return NextResponse.json(
-                { success: false, message: 'Ruta de videos de ayuda no configurada (AYUDA_VIDEOS_PATH).' },
+                { success: false, message: 'URL de videos de ayuda no configurada (NEXT_PUBLIC_AYUDA_VIDEOS_BASE_URL).' },
                 { status: 500 }
             );
         }
 
-        // Diagnóstico: muestra el path y si existe
-        const existe = fs.existsSync(videosRoot);
-        console.log('[AYUDA][VIDEOS] Path configurado:', JSON.stringify(videosRoot));
-        console.log('[AYUDA][VIDEOS] El directorio existe:', existe);
-        if (existe) {
-            try {
-                const entries = fs.readdirSync(videosRoot);
-                console.log('[AYUDA][VIDEOS] Entradas encontradas:', entries.length, entries.slice(0, 5));
-            } catch (readErr) {
-                console.error('[AYUDA][VIDEOS] Error al leer el directorio:', readErr.message);
-            }
-        }
+        const data = await scrapeTree(baseUrl, filtro.toLowerCase());
 
-        const data = buildTree(videosRoot, filtro);
-
-        return NextResponse.json({ success: true, data, _debug: { path: videosRoot, existe } });
+        return NextResponse.json({ success: true, data });
     } catch (error) {
         console.error('[AYUDA][VIDEOS]', error);
 

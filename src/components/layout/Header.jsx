@@ -62,7 +62,7 @@ function findPageTitle(pathname) {
 export default function Header({ onMenuClick, sidebarWidth = 0 }) {
   const theme = useTheme();
   const pathname = usePathname();
-  const { user, logout } = useAuth({ redirectOnUnauthenticated: false });
+  const { user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const menuOpen = Boolean(anchorEl);
 

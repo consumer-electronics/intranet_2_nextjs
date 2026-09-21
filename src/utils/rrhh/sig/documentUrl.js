@@ -1,7 +1,7 @@
 export function construirRutaBase(carpetaBase) {
-    if (!carpetaBase) return 'https://dynamics.appceg.com/sig/2.%20Documentos%20generales/';
+    if (!carpetaBase) return 'https://dynamics.appceg.com/sig/1.%20Documentos/';
     if (carpetaBase.startsWith('http')) return carpetaBase;
-    return `https://dynamics.appceg.com/sig/2.%20Documentos%20generales/${encodeURIComponent(carpetaBase)}/`;
+    return `https://dynamics.appceg.com/sig/1.%20Documentos/${encodeURIComponent(carpetaBase)}/`;
 }
 
 export function construirUrlArchivo(rutaBase, rutaCarpetas, archivo) {

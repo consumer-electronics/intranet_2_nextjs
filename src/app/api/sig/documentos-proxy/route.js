@@ -1,63 +1,5 @@
 import { NextResponse } from 'next/server';
 
-const CACHE = new Map();
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-
-async function crawlAutoIndex(url) {
-    if (CACHE.has(url)) {
-        const cached = CACHE.get(url);
-        if (Date.now() - cached.time < CACHE_TTL) {
-            return cached.data;
-        }
-    }
-
-    try {
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) {
-            if (res.status === 404 || res.status === 403) return [];
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
-
-        const html = await res.text();
-        const result = [];
-
-        const regex = /<td class="indexcolname"><a href="([^"]+)">([^<]+)<\/a><\/td>/g;
-        let match;
-        const folderPromises = [];
-
-        while ((match = regex.exec(html)) !== null) {
-            const href = match[1];
-            let name = match[2];
-
-            if (href.startsWith('?C=') || name === 'Parent Directory') continue;
-            
-            name = decodeURIComponent(href);
-
-            if (href.endsWith('/')) {
-                const folderName = name.slice(0, -1);
-                const subUrl = new URL(href, url).href;
-                
-                folderPromises.push((async () => {
-                    const subContent = await crawlAutoIndex(subUrl);
-                    result.push({ [folderName]: subContent });
-                })());
-            } else {
-                const fileName = name;
-                result.push({ archivo: fileName });
-            }
-        }
-
-        await Promise.all(folderPromises);
-
-        CACHE.set(url, { time: Date.now(), data: result });
-        return result;
-
-    } catch (error) {
-        console.error(`[SIG] Error crawling URL: ${url}`, error);
-        return [];
-    }
-}
-
 function filterTree(tree, filterLower) {
     if (!filterLower) return tree;
     const result = [];
@@ -91,16 +33,31 @@ export async function GET(request) {
 
         let targetUrl = baseFolderUrl;
         if (!targetUrl.startsWith('http')) {
-            targetUrl = `https://dynamics.appceg.com/sig/2.%20Documentos%20generales/${encodeURIComponent(targetUrl)}/`;
+            targetUrl = `https://dynamics.appceg.com/sig/1.%20Documentos/${encodeURIComponent(targetUrl)}/`;
         }
 
-        targetUrl = targetUrl.endsWith('/') ? targetUrl : `${targetUrl}/`;
-
-        if (!targetUrl.startsWith('https://dynamics.appceg.com/sig/')) {
-             return NextResponse.json({ success: false, message: 'URL no permitida.' }, { status: 403 });
+        // Extraer el path relativo (e.g. "1. Documentos/Formatos")
+        let relativePath = decodeURIComponent(targetUrl.replace('https://dynamics.appceg.com/sig/', '').replace(/\/$/, ''));
+        if (!relativePath) {
+            relativePath = '1. Documentos';
         }
 
-        const rawData = await crawlAutoIndex(targetUrl);
+        const API_NODE = process.env.API_NODE || 'http://localhost:3010';
+        
+        const res = await fetch(`${API_NODE}/api/sig/getFolderTree?folder=${encodeURIComponent(relativePath)}`, {
+            // Pasamos un token dummy o puedes configurar uno real si el middleware validateToken lo exige
+            headers: { 'Authorization': `Bearer ${request.headers.get('Authorization')?.split(' ')[1] || 'dummy'}` },
+            cache: 'no-store'
+        });
+
+        if (!res.ok) {
+            console.error(`[SIG] Node API error: ${res.status}`);
+            return NextResponse.json({ success: true, data: [] });
+        }
+
+        const json = await res.json();
+        const rawData = json.data || [];
+
         const data = filterTree(rawData, filtro.toLowerCase());
 
         return NextResponse.json({ success: true, data });
@@ -108,7 +65,7 @@ export async function GET(request) {
     } catch (error) {
         console.error('[SIG][PROXY]', error);
         return NextResponse.json(
-            { success: false, message: 'Error al procesar la solicitud de proxy.' },
+            { success: false, message: 'Error al procesar la solicitud al API de Node.' },
             { status: 500 }
         );
     }

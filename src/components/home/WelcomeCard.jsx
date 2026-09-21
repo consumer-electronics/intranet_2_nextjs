@@ -22,7 +22,7 @@ const WEEKDAYS = [
  * el Home.
  */
 export default function WelcomeCard() {
-  const { user, loading } = useAuth({ redirectOnUnauthenticated: false });
+  const { user, loading } = useAuth();
 
   const today = new Date();
   const weekday = WEEKDAYS[today.getDay()];
@@ -61,7 +61,7 @@ export default function WelcomeCard() {
               <Skeleton width={220} height={32} />
             ) : (
               <Typography variant="h5" fontWeight={700} noWrap>
-                {saludo}{user.name ? `, ${user.name}` : ''}
+                {saludo}{user?.name ? `, ${user.name}` : ''}
               </Typography>
             )}
 

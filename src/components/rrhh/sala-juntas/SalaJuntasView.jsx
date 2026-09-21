@@ -45,7 +45,7 @@ const SalaJuntasCalendar = dynamic(
 );
 
 export default function SalaJuntasView() {
-    const { user } = useAuth({ redirectOnUnauthenticated: false });
+    const { user } = useAuth();
 
     const {
         reservaciones,

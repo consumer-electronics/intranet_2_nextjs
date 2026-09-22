@@ -136,16 +136,16 @@ export default function CreserModulo() {
                             sx={{ borderRadius: 2 }}
                         >
                             <Table size="small" aria-label="Lista de colaboradores CRESER">
-                                <TableHead>
-                                    <TableRow sx={{ bgcolor: 'primary.main' }}>
+                                <TableHead sx={{ bgcolor: 'action.hover' }}>
+                                    <TableRow>
                                         <TableCell
-                                            sx={{ color: 'primary.contrastText', fontWeight: 700 }}
+                                            sx={{ color: 'text.primary', fontWeight: 700 }}
                                         >
                                             Nombre
                                         </TableCell>
                                         <TableCell
                                             align="center"
-                                            sx={{ color: 'primary.contrastText', fontWeight: 700 }}
+                                            sx={{ color: 'text.primary', fontWeight: 700 }}
                                         >
                                             Cantidad
                                         </TableCell>

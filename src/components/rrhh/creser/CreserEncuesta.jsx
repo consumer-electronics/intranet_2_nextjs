@@ -23,6 +23,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DoDisturbIcon from '@mui/icons-material/DoDisturb';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 
 import { useAuth } from '@/hooks/useAuth';
 import { getEncuestaView } from '@/api/rrhh/creser';
@@ -78,18 +79,34 @@ export default function CreserEncuesta({ et_id, filtro_atr }) {
     const titulo = datos?.titulo ?? 'Evaluación CRESER';
     const columns = datos?.columns ?? [];
     const rows = datos?.rows ?? [];
+    const canEvaluar = datos?.canEvaluar ?? false;
 
     return (
         <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 4, mb: 5, px: { xs: 1, sm: 0 } }}>
-            {/* Botón volver */}
-            <Button
-                id="creser-encuesta-back"
-                startIcon={<ArrowBackIcon />}
-                onClick={() => router.back()}
-                sx={{ mb: 2, textTransform: 'none' }}
-            >
-                Volver
-            </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Button
+                    id="creser-encuesta-back"
+                    startIcon={<ArrowBackIcon />}
+                    onClick={() => router.back()}
+                    sx={{ textTransform: 'none' }}
+                >
+                    Volver
+                </Button>
+
+                {/* Mostrar el botón "Evaluar Colaborador" si el backend legacy detecta que puede tomar una encuesta */}
+                {canEvaluar && (
+                    <Button
+                        id="creser-encuesta-evaluar-nuevo"
+                        variant="contained"
+                        color="primary"
+                        startIcon={<AddCircleIcon />}
+                        onClick={() => router.push(`/rrhh/creser/encuesta/take?et_id=${et_id}&filtro_atr=${filtro_atr}`)}
+                        sx={{ textTransform: 'none', borderRadius: 2 }}
+                    >
+                        Evaluar Colaborador
+                    </Button>
+                )}
+            </Box>
 
             <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
                 {/* Encabezado */}
@@ -170,16 +187,17 @@ export default function CreserEncuesta({ et_id, filtro_atr }) {
                                     sx={{ fontSize: 11 }}
                                 >
                                     <TableHead>
-                                        <TableRow sx={{ bgcolor: 'primary.main' }}>
+                                        <TableRow>
                                             {columns.map((col, idx) => (
                                                 <TableCell
                                                     key={idx}
                                                     align="center"
                                                     sx={{
-                                                        color: 'primary.contrastText',
+                                                        color: 'text.primary',
                                                         fontWeight: 700,
                                                         fontSize: 11,
                                                         whiteSpace: 'nowrap',
+                                                        bgcolor: 'action.hover',
                                                     }}
                                                 >
                                                     {col}
@@ -189,9 +207,10 @@ export default function CreserEncuesta({ et_id, filtro_atr }) {
                                             <TableCell
                                                 align="center"
                                                 sx={{
-                                                    color: 'primary.contrastText',
+                                                    color: 'text.primary',
                                                     fontWeight: 700,
                                                     fontSize: 11,
+                                                    bgcolor: 'action.hover',
                                                 }}
                                             >
                                                 Acciones
@@ -241,7 +260,21 @@ export default function CreserEncuesta({ et_id, filtro_atr }) {
                                                             </Button>
                                                         </Tooltip>
                                                     ) : (
-                                                        '—'
+                                                        canEvaluar ? (
+                                                            <Button
+                                                                size="small"
+                                                                variant="contained"
+                                                                color="primary"
+                                                                onClick={() => router.push(`/rrhh/creser/encuesta/take?et_id=${et_id}&filtro_atr=${filtro_atr}`)}
+                                                                sx={{
+                                                                    textTransform: 'none',
+                                                                    fontSize: 11,
+                                                                    borderRadius: 1.5,
+                                                                }}
+                                                            >
+                                                                Evaluar
+                                                            </Button>
+                                                        ) : '—'
                                                     )}
                                                 </TableCell>
                                             </TableRow>

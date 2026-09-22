@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const LEGACY_BASE_URL = process.env.URL_DYNAMICS;
-const LEGACY_ENDPOINT = `${(LEGACY_BASE_URL || '').replace(/\/+$/, '')}/paginas/gestion_humana/creser.php`;
+const LEGACY_ENDPOINT = `${(LEGACY_BASE_URL || '').replace(/\/+$/, '')}/pantallas/intranet/paginas/gestion_humana/creser.php`;
 
 /**
  * Gestión de periodos CRESER (listar, crear, actualizar).

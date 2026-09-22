@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const LEGACY_BASE_URL = process.env.URL_DYNAMICS;
-const LEGACY_ENDPOINT = `${(LEGACY_BASE_URL || '').replace(/\/+$/, '')}/ajax/usuarios.php`;
+const LEGACY_ENDPOINT = `${(LEGACY_BASE_URL || '').replace(/\/+$/, '')}/pantallas/intranet/ajax/usuarios.php`;
 
 /**
  * Listado de áreas con estadísticas de CRESER por periodo.

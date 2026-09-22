@@ -24,6 +24,7 @@ import Alert from '@mui/material/Alert';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SchoolIcon from '@mui/icons-material/School';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
@@ -195,6 +196,15 @@ export default function CreserRegistros() {
                         }}
                     >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Button
+                                id="creser-registros-back"
+                                startIcon={<ArrowBackIcon />}
+                                onClick={() => router.push('/rrhh/creser')}
+                                sx={{ textTransform: 'none', fontWeight: 500 }}
+                                size="small"
+                            >
+                                Volver a CRESER
+                            </Button>
                             <FormControl size="small" sx={{ minWidth: 240 }}>
                                 <InputLabel id="creser-periodo-label">Periodo</InputLabel>
                                 <Select
@@ -256,10 +266,10 @@ export default function CreserRegistros() {
                                     <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                                         <Table size="small" aria-label="Tabla de áreas CRESER">
                                             <TableHead>
-                                                <TableRow sx={{ bgcolor: 'primary.main' }}>
-                                                    <TableCell sx={{ color: 'primary.contrastText', fontWeight: 700 }}>Área</TableCell>
-                                                    <TableCell align="center" sx={{ color: 'primary.contrastText', fontWeight: 700 }}>Usuarios</TableCell>
-                                                    <TableCell align="center" sx={{ color: 'primary.contrastText', fontWeight: 700 }}>Completados</TableCell>
+                                                <TableRow>
+                                                    <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Área</TableCell>
+                                                    <TableCell align="center" sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Usuarios</TableCell>
+                                                    <TableCell align="center" sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Completados</TableCell>
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
@@ -340,11 +350,11 @@ export default function CreserRegistros() {
                             <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                                 <Table size="small" aria-label="Tabla proyectos y formación CRESER">
                                     <TableHead>
-                                        <TableRow sx={{ bgcolor: 'primary.main' }}>
-                                            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 700 }}>Área</TableCell>
-                                            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 700 }}>Usuarios</TableCell>
-                                            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 700 }}>Formación</TableCell>
-                                            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 700 }}>Proyecto</TableCell>
+                                        <TableRow>
+                                            <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Área</TableCell>
+                                            <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Usuarios</TableCell>
+                                            <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Formación</TableCell>
+                                            <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Proyecto</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>

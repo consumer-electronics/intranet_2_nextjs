@@ -278,12 +278,12 @@ export default function CreserPeriodosModal({
                         <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                             <Table size="small" aria-label="Lista de periodos CRESER">
                                 <TableHead>
-                                    <TableRow sx={{ bgcolor: 'grey.100' }}>
-                                        <TableCell fontWeight={700}>Periodo</TableCell>
-                                        <TableCell>Fecha Inicio</TableCell>
-                                        <TableCell>Fecha Fin</TableCell>
-                                        <TableCell>Descripción</TableCell>
-                                        <TableCell align="center">Acciones</TableCell>
+                                    <TableRow>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'primary.main', color: 'common.white' }}>Periodo</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'primary.main', color: 'common.white' }}>Fecha Inicio</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'primary.main', color: 'common.white' }}>Fecha Fin</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, bgcolor: 'primary.main', color: 'common.white' }}>Descripción</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 700, bgcolor: 'primary.main', color: 'common.white' }}>Acciones</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>

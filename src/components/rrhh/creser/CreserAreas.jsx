@@ -151,10 +151,10 @@ export default function CreserAreas({ idArea, idPeriodo }) {
                                 <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                                     <Table size="small" aria-label="Personas del área CRESER">
                                         <TableHead>
-                                            <TableRow sx={{ bgcolor: 'primary.main' }}>
-                                                <TableCell sx={{ color: 'primary.contrastText', fontWeight: 700 }}>Nombre</TableCell>
-                                                <TableCell align="center" sx={{ color: 'primary.contrastText', fontWeight: 700 }}>Estado</TableCell>
-                                                <TableCell align="center" sx={{ color: 'primary.contrastText', fontWeight: 700 }}>Intentos</TableCell>
+                                            <TableRow>
+                                                <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Nombre</TableCell>
+                                                <TableCell align="center" sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Estado</TableCell>
+                                                <TableCell align="center" sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Intentos</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>

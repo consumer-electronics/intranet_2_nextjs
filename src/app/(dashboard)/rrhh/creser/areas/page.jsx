@@ -8,10 +8,13 @@ export const metadata = {
 /**
  * Página de detalle de área CRESER.
  * Recibe: ?idArea=X&idPeriodo=Y
+ *
+ * En Next.js 15+ searchParams es una Promise y debe ser awaited.
  */
-export default function CreserAreasPage({ searchParams }) {
-  const idArea = searchParams?.idArea ?? null;
-  const idPeriodo = searchParams?.idPeriodo ?? null;
+export default async function CreserAreasPage({ searchParams }) {
+  const params = await searchParams;
+  const idArea = params?.idArea ?? null;
+  const idPeriodo = params?.idPeriodo ?? null;
 
   return <CreserAreas idArea={idArea} idPeriodo={idPeriodo} />;
 }

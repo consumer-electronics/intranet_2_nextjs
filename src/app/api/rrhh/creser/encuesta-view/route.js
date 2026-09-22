@@ -7,12 +7,12 @@ const LEGACY_BASE_URL = process.env.URL_DYNAMICS;
  *
  * Dynamics genera una página HTML con un DataTable inicializado así:
  *   columns: [{ title: "Col1" }, ...]
- *   data: [["val1", "val2", "<a href='...?ere_id=X'>Ver</a>"], ...]
+ *   data:[["val1","val2","<a href='...?ere_id=X'>Ver</a>"],...]
  *
  * Este route handler:
  * 1. Hace fetch al HTML de Dynamics con los parámetros correspondientes.
- * 2. Extrae titulo, columnas y filas del HTML via regex.
- * 3. Extrae el ere_id del link "Ver" para navegación en Next.js.
+ * 2. Itera todos los bloques <script> buscando el array data:[...].
+ * 3. Decodifica entidades HTML en título y celdas.
  * 4. Devuelve JSON estructurado: { titulo, columns, rows, canEvaluar, etId }
  *
  * Body esperado: { et_id, filtro_atr, id_usuario }
@@ -36,7 +36,7 @@ export async function POST(request) {
             ...(id_usuario ? { id_usuario: String(id_usuario) } : {}),
         });
 
-        const dynamicsUrl = `${base}/encuesta/creser_view.php?${params.toString()}`;
+        const dynamicsUrl = `${base}/pantallas/intranet/encuesta/creser_view.php?${params.toString()}`;
 
         const legacyResponse = await fetch(dynamicsUrl, {
             method: 'GET',
@@ -47,31 +47,42 @@ export async function POST(request) {
             throw new Error(`Error al contactar Dynamics: ${legacyResponse.status}`);
         }
 
-        const html = await legacyResponse.text();
+        // El servidor PHP declara y envía UTF-8
+        const buffer = await legacyResponse.arrayBuffer();
+        const html = new TextDecoder('utf-8').decode(buffer);
 
         // ── Extraer título ──────────────────────────────────────────────────
         const tituloMatch = html.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i);
-        const titulo = tituloMatch
+        const tituloRaw = tituloMatch
             ? tituloMatch[1].replace(/<[^>]+>/g, '').trim()
             : 'CRESER';
+        const titulo = decodeHtmlEntities(tituloRaw);
 
         // ── Extraer columnas ────────────────────────────────────────────────
         // PHP genera: columns: [{ title: "Nombre" }, ..., { title: "Acciones" }]
-        // La clave "title" no está entre comillas → no es JSON válido
+        // La clave "title" no está entre comillas — no es JSON válido
         const columnTitles = [...html.matchAll(/title:\s*"([^"]*)"/g)].map(
-            (m) => m[1]
+            (m) => decodeHtmlEntities(m[1])
         );
 
         // ── Extraer datos ───────────────────────────────────────────────────
-        // PHP genera: data:[["val1","val2",...],...]
-        // Es JSON válido porque los valores usan json_encode
-        const dataJsonStr = extractJsonArray(html, 'data:');
+        // PHP embebe directamente: data:[["val1","val2",...],...]
+        // Iteramos todos los bloques <script> buscando el token 'data:'
+        const scriptBlocks = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(
+            (m) => m[1]
+        );
+
         let rawRows = [];
-        if (dataJsonStr) {
-            try {
-                rawRows = JSON.parse(dataJsonStr);
-            } catch {
-                rawRows = [];
+        for (const block of scriptBlocks) {
+            // Buscar 'data:[[' para evitar falsos positivos con 'data.xxx' en fetch calls JS
+            const dataJsonStr = extractJsonArray(block, 'data:[[');
+            if (dataJsonStr) {
+                try {
+                    rawRows = JSON.parse(dataJsonStr);
+                    break;
+                } catch {
+                    // seguir buscando en el siguiente bloque
+                }
             }
         }
 
@@ -88,8 +99,10 @@ export async function POST(request) {
             const idUsuMatch = lastCell.match(/idUsu=(\d+)/);
 
             return {
-                // Todas las celdas excepto la última (acciones)
-                cells: row.slice(0, row.length - 1).map((c) => String(c ?? '')),
+                // Todas las celdas excepto la última (acciones), decodificando entidades
+                cells: row.slice(0, row.length - 1).map((c) =>
+                    decodeHtmlEntities(String(c ?? ''))
+                ),
                 ereId: ereIdMatch ? Number(ereIdMatch[1]) : null,
                 idUsu: idUsuMatch ? Number(idUsuMatch[1]) : null,
             };
@@ -121,7 +134,11 @@ function extractJsonArray(str, marker) {
     const markerIdx = str.indexOf(marker);
     if (markerIdx === -1) return null;
 
-    const start = str.indexOf('[', markerIdx + marker.length);
+    // Si el marker ya contiene '[', el inicio del array es el primer '[' dentro del marker
+    const bracketInMarker = marker.indexOf('[');
+    const start = bracketInMarker >= 0
+        ? markerIdx + bracketInMarker
+        : str.indexOf('[', markerIdx + marker.length);
     if (start === -1) return null;
 
     let depth = 0;
@@ -144,4 +161,37 @@ function extractJsonArray(str, marker) {
     }
 
     return null;
+}
+
+/**
+ * Decodifica entidades HTML comunes presentes en las respuestas PHP.
+ * No usa DOMParser (server-side), se hace con un mapa de entidades.
+ */
+function decodeHtmlEntities(str) {
+    if (!str || typeof str !== 'string') return str;
+    return str
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&aacute;/g, 'á')
+        .replace(/&eacute;/g, 'é')
+        .replace(/&iacute;/g, 'í')
+        .replace(/&oacute;/g, 'ó')
+        .replace(/&uacute;/g, 'ú')
+        .replace(/&Aacute;/g, 'Á')
+        .replace(/&Eacute;/g, 'É')
+        .replace(/&Iacute;/g, 'Í')
+        .replace(/&Oacute;/g, 'Ó')
+        .replace(/&Uacute;/g, 'Ú')
+        .replace(/&ntilde;/g, 'ñ')
+        .replace(/&Ntilde;/g, 'Ñ')
+        .replace(/&uuml;/g, 'ü')
+        .replace(/&Uuml;/g, 'Ü')
+        .replace(/&iexcl;/g, '¡')
+        .replace(/&iquest;/g, '¿')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+        .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
 }

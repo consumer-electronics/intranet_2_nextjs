@@ -139,3 +139,52 @@ export async function getEncuestaView({ et_id, filtro_atr, id_usuario }) {
     });
     return handleResponse(res);
 }
+
+/**
+ * Obtiene el detalle de una evaluación (respuestas) llamando a la nueva API JSON de Dynamics.
+ * @param {{ et_id: number|string, ere_id: number|string, idUsu?: number|string }} params
+ */
+export async function getEncuestaRta({ et_id, ere_id, idUsu }) {
+    const res = await fetch(`${BASE}/encuesta-rta`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ et_id, ere_id, idUsu }),
+    });
+    return handleResponse(res);
+}
+
+/**
+ * Llama a métodos de ClassProject (getAdditionalInfo, saveAdditionalInfo, editAdditionalInfo)
+ * @param {string} method Nombre del método de la clase PHP
+ * @param {object} param Parámetros que recibe el método PHP
+ */
+export async function callClassProject(method, param) {
+    const res = await fetch(`${BASE}/class-project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ method, param }),
+    });
+    return handleResponse(res);
+}
+
+/**
+ * Obtiene la estructura de la encuesta CRESER para tomarla (inputs, grupos, preguntas).
+ */
+export async function getEncuestaTakeForm(et_id) {
+    const res = await fetch(`${BASE}/encuesta-take?et_id=${et_id}`);
+    return handleResponse(res);
+}
+
+/**
+ * Guarda una evaluación CRESER enviando un FormData
+ */
+export async function saveEncuestaTakeForm(formData) {
+    const res = await fetch(`${BASE}/encuesta-take`, {
+        method: 'POST',
+        body: formData, // Fetch calcula el boundary automáticamente
+    });
+    return handleResponse(res);
+}
+
+
+

@@ -1,142 +1,127 @@
 'use client';
 
-import { Box, Grid, Stack, Typography } from '@mui/material';
-
+import { Box, Grid } from '@mui/material';
 import ProcessPalette from './ProcessPalette';
 import { PROCESS_COLOR_VARIANTS } from '@/config/sig/mapaProcesos';
 
-export default function ProcessGroup({ groupData, onSelectDocument }) {
+export default function ProcessGroup({ groupData, onSelectDocument, containerWidth = '100%' }) {
     if (!groupData) return null;
 
     const { id, title, colorVariant, bgImage, processes } = groupData;
     const variant = PROCESS_COLOR_VARIANTS[colorVariant] || PROCESS_COLOR_VARIANTS.orange;
 
-    const getProcess = (code) => processes.find((p) => p.code === code);
+    // Helper para buscar un proceso por su código
+    const getProcess = (code) => processes.find(p => p.code === code);
 
-    const renderEstrategicosLayout = () => {
-        const e01 = getProcess('E01');
-        const e02 = getProcess('E02');
+    // Renderiza un único proceso, aplicando offset en todas las resoluciones
+    const renderProcess = (code) => {
+        const process = getProcess(code);
+        if (!process) return null;
+        
+        // Convertir el offset para que aplique siempre
+        const responsiveOffset = {};
+        if (process.offset) {
+            for (const [key, value] of Object.entries(process.offset)) {
+                // si el usuario escribió mal 'buttom', lo arreglamos
+                const safeKey = key === 'buttom' ? 'bottom' : key;
+                responsiveOffset[safeKey] = value;
+            }
+        }
 
         return (
-            <Grid container spacing={{ xs: 1, sm: 2 }} alignItems="center">
-                {e01 && (
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <ProcessPalette process={e01} onSelectDocument={onSelectDocument} />
+            <Box sx={{ position: 'relative', width: '100%', ...responsiveOffset }}>
+                <ProcessPalette process={process} onSelectDocument={onSelectDocument} />
+            </Box>
+        );
+    };
+
+    // Estilos comunes para el contenedor del overlay (absoluto siempre)
+    const overlayWrapperStyles = {
+        position: 'absolute', 
+        top: 0, left: 0, width: '100%', height: '100%', 
+        display: 'flex'
+    };
+
+    // Estratégicos: E01 - Centro vacío - E02
+    if (id === 'estrategicos') {
+        return (
+            <Box sx={{ position: 'relative', width: containerWidth, margin: 'auto' }}>
+                <Box component="img" src={bgImage} alt={title} sx={{ width: '100%', height: 'auto', display: 'block' }} />
+                
+                <Box sx={{ ...overlayWrapperStyles, alignItems: 'center' }}>
+                    <Grid container sx={{ width: '100%' }}>
+                        <Grid size={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                            {renderProcess('E01')}
+                        </Grid>
+                        <Grid size={4}></Grid> {/* Espacio central */}
+                        <Grid size={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                            {renderProcess('E02')}
+                        </Grid>
                     </Grid>
-                )}
-                {e02 && (
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <ProcessPalette process={e02} onSelectDocument={onSelectDocument} />
+                </Box>
+            </Box>
+        );
+    }
+
+    // Valor: 2x2 (V01 arriba-izq, V02 arriba-der, V03 abajo-izq, V04 abajo-der)
+    if (id === 'valor') {
+        return (
+            <Box sx={{ position: 'relative', width: containerWidth, margin: 'auto' }}>
+                <Box component="img" src={bgImage} alt={title} sx={{ width: '100%', height: 'auto', display: 'block' }} />
+                
+                <Box sx={{ ...overlayWrapperStyles, flexDirection: 'column', justifyContent: 'space-around', py: { xs: 0, md: 2 } }}>
+                    {/* Fila Superior */}
+                    <Grid container>
+                        <Grid size={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                            {renderProcess('V01')}
+                        </Grid>
+                        <Grid size={4}></Grid>
+                        <Grid size={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                            {renderProcess('V02')}
+                        </Grid>
                     </Grid>
-                )}
-            </Grid>
+                    
+                    {/* Fila Inferior */}
+                    <Grid container>
+                        <Grid size={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                            {renderProcess('V03')}
+                        </Grid>
+                        <Grid size={4}></Grid>
+                        <Grid size={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                            {renderProcess('V04')}
+                        </Grid>
+                    </Grid>
+                </Box>
+            </Box>
         );
-    };
+    }
 
-    // V01 (arriba-izq) / V02 (arriba-der)  —  V03 (abajo-izq) / V04 (abajo-der)
-    const renderValorLayout = () => {
-        const v01 = getProcess('V01');
-        const v02 = getProcess('V02');
-        const v03 = getProcess('V03');
-        const v04 = getProcess('V04');
-
+    // Apoyo
+    if (id === 'apoyo') {
         return (
-            <Stack spacing={{ xs: 2, sm: 5 }} sx={{ width: '100%' }}>
-                <Grid container spacing={{ xs: 1, sm: 2 }} alignItems="center">
-                    {v01 && (
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <ProcessPalette process={v01} onSelectDocument={onSelectDocument} />
+            <Box sx={{ position: 'relative', width: containerWidth, margin: 'auto' }}>
+                <Box component="img" src={bgImage} alt={title} sx={{ width: '100%', height: 'auto', display: 'block' }} />
+                
+                <Box sx={{ ...overlayWrapperStyles, flexDirection: 'column', justifyContent: 'space-around' }}>
+                    <Grid container>
+                        <Grid size={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                            {renderProcess('A01')}
                         </Grid>
-                    )}
-                    {v02 && (
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <ProcessPalette process={v02} onSelectDocument={onSelectDocument} />
+                        <Grid size={4}></Grid>
+                        <Grid size={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                            {renderProcess('A02')}
                         </Grid>
-                    )}
-                </Grid>
-
-                <Grid container spacing={{ xs: 1, sm: 2 }} alignItems="center">
-                    {v03 && (
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <ProcessPalette process={v03} onSelectDocument={onSelectDocument} />
+                    </Grid>
+                    
+                    <Grid container justifyContent="center">
+                        <Grid size={6}>
+                            {renderProcess('A03')}
                         </Grid>
-                    )}
-                    {v04 && (
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <ProcessPalette process={v04} onSelectDocument={onSelectDocument} />
-                        </Grid>
-                    )}
-                </Grid>
-            </Stack>
+                    </Grid>
+                </Box>
+            </Box>
         );
-    };
+    }
 
-    // A01 (arriba-izq) / A02 (arriba-der)  —  A03 (abajo-centro)
-    const renderApoyoLayout = () => {
-        const a01 = getProcess('A01');
-        const a02 = getProcess('A02');
-        const a03 = getProcess('A03');
-
-        return (
-            <Stack spacing={{ xs: 1.5, sm: 3 }} sx={{ width: '100%' }}>
-                <Grid container spacing={{ xs: 1, sm: 2 }} alignItems="center">
-                    {a01 && (
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <ProcessPalette process={a01} onSelectDocument={onSelectDocument} />
-                        </Grid>
-                    )}
-                    {a02 && (
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <ProcessPalette process={a02} onSelectDocument={onSelectDocument} />
-                        </Grid>
-                    )}
-                </Grid>
-
-                {a03 && (
-                    <Box sx={{ width: { xs: '100%', sm: '55%' }, mx: 'auto' }}>
-                        <ProcessPalette process={a03} onSelectDocument={onSelectDocument} />
-                    </Box>
-                )}
-            </Stack>
-        );
-    };
-
-    return (
-        <Box
-            sx={{
-                position: 'relative',
-                borderRadius: 3,
-                p: { xs: 1.5, sm: 2.5 },
-                bgcolor: 'background.paper',
-                border: '1px solid',
-                borderColor: variant.border,
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                overflow: 'hidden',
-                backgroundImage: bgImage ? `url(${bgImage})` : 'none',
-                backgroundSize: 'contain',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center center',
-                minHeight: { xs: 'auto', sm: 220 },
-            }}
-        >
-            <Typography
-                variant="overline"
-                sx={{
-                    display: 'block',
-                    textAlign: 'center',
-                    fontWeight: 700,
-                    letterSpacing: '1px',
-                    color: variant.text,
-                    mb: 1.5,
-                    fontSize: '0.8125rem',
-                }}
-            >
-                {title}
-            </Typography>
-
-            {id === 'estrategicos' && renderEstrategicosLayout()}
-            {id === 'valor' && renderValorLayout()}
-            {id === 'apoyo' && renderApoyoLayout()}
-        </Box>
-    );
+    return null;
 }

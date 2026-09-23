@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 
-// TODO: mover a variable de entorno.
-const DYNAMICS_API_URL = process.env.URL_DYNAMICS;
+const DYNAMICS_API_URL = process.env.API_NODE;
 
 export async function PATCH(request) {
   try {
     const { id, estado } = await request.json();
 
-    const legacyResponse = await fetch(`${DYNAMICS_API_URL}api/forms/update-register`, {
+    const legacyResponse = await fetch(`${DYNAMICS_API_URL.replace(/\/+$/, '')}/api/forms/update-register`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, estado: estado ?? 2 }),

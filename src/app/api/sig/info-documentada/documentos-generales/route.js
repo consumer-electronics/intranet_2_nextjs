@@ -38,7 +38,7 @@ export async function GET(request) {
         const { searchParams } = new URL(request.url);
         const filtro = searchParams.get('filtro') || '';
         const ruta = searchParams.get('ruta') || '';
-        const docsRoot = process.env.SIG_UNC_PATH_DOCUMENTOS_GENERALES || '\\\\192.168.1.141\\htdocs\\sig\\2. Documentos generales';
+        const docsRoot = process.env.SIG_UNC_PATH_DOCUMENTOS_GENERALES || '\\\\192.168.1.141\\htdocs\\sig\\1. Documentos';
         // Evita que "ruta" pueda salirse de docsRoot (path traversal, ej: "../../../etc")
         const docsDir = path.normalize(path.join(/*turbopackIgnore: true*/ docsRoot, ruta));
         if (!docsDir.startsWith(docsRoot)) {

@@ -15,56 +15,62 @@ export default function MapaProcesos({ onSelectDocument }) {
                 borderRadius: 3,
                 border: '1px solid',
                 borderColor: 'divider',
-                bgcolor: 'background.paper',
+                bgcolor: (theme) => theme.palette.mode === 'light' ? '#f4f6f8' : 'background.default',
             }}
         >
-            <Grid container spacing={{ xs: 2, md: 3 }} sx={{ alignItems: 'stretch' }}>
-                {/* Panel Lateral Izquierdo: Contexto Organizacional, Requisitos del cliente, Necesidades y Expectativas */}
-                <Grid size={{ xs: 12, md: 2.5 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Grid container spacing={{ xs: 1, md: 2 }} sx={{ alignItems: 'center' }}>
+                {/* Panel Lateral Izquierdo */}
+                <Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Box
                         component="img"
                         src="/images/mapa/1-lateral.png"
                         alt="Contexto organizacional y Requisitos del cliente"
                         sx={{
                             width: '100%',
-                            maxHeight: { xs: 300, md: 620 },
+                            height: 'auto',
                             objectFit: 'contain',
                         }}
                     />
                 </Grid>
 
-                {/* Panel Centro: Procesos (Estratégicos, Valor, Apoyo) */}
-                <Grid size={{ xs: 12, md: 7 }}>
-                    <Stack spacing={2.5} sx={{ width: '100%' }}>
-                        {/* 1. Procesos Estratégicos */}
-                        <ProcessGroup
-                            groupData={MAPA_PROCESOS.estrategicos}
-                            onSelectDocument={onSelectDocument}
-                        />
+                {/* Panel Centro: Procesos */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <Box>
+                            <ProcessGroup
+                                groupData={MAPA_PROCESOS.estrategicos}
+                                onSelectDocument={onSelectDocument}
+                                containerWidth={{ xs: '100%', md: '100%' }} // ¡Modifica aquí para escalar ESTRATÉGICOS!
+                            />
+                        </Box>
 
-                        {/* 2. Procesos del Valor */}
-                        <ProcessGroup
-                            groupData={MAPA_PROCESOS.valor}
-                            onSelectDocument={onSelectDocument}
-                        />
+                        <Box sx={{ mt: { xs: -2, md: -4 } }}>
+                            <ProcessGroup
+                                groupData={MAPA_PROCESOS.valor}
+                                onSelectDocument={onSelectDocument}
+                                containerWidth={{ xs: '100%', md: '100%' }} // ¡Modifica aquí para escalar VALOR!
+                            />
+                        </Box>
 
-                        {/* 3. Procesos de Apoyo */}
-                        <ProcessGroup
-                            groupData={MAPA_PROCESOS.apoyo}
-                            onSelectDocument={onSelectDocument}
-                        />
-                    </Stack>
+                        <Box sx={{ mt: { xs: -2, md: -4 } }}>
+                            <ProcessGroup
+                                groupData={MAPA_PROCESOS.apoyo}
+                                onSelectDocument={onSelectDocument}
+                                containerWidth={{ xs: '100%', md: '100%' }} // ¡Modifica aquí para escalar APOYO!
+                            />
+                        </Box>
+                    </Box>
                 </Grid>
 
-                {/* Panel Lateral Derecho: Resultados del SIG, Satisfacción del cliente, Productos */}
-                <Grid size={{ xs: 12, md: 2.5 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Panel Lateral Derecho */}
+                <Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Box
                         component="img"
                         src="/images/mapa/2-lateral.png"
                         alt="Resultados del SIG y Satisfacción del cliente"
                         sx={{
                             width: '100%',
-                            maxHeight: { xs: 300, md: 620 },
+                            height: 'auto',
                             objectFit: 'contain',
                         }}
                     />

@@ -5,31 +5,34 @@ import { Box, Typography } from '@mui/material';
 
 import FolderExplorerModal from '../info-documentada/FolderExplorerModal';
 import { PROCESS_COLOR_VARIANTS } from '@/config/sig/mapaProcesos';
+import { useSigPermissions } from '@/hooks/rrhh/sig/useSigPermissions';
 
 /**
  * Botón de proceso del Mapa de Procesos.
  *
- * Refactorizado: de ButtonBase (apariencia de botón rectangular)
- * a enlace de texto interactivo elegante con:
- * - Cambio de color al hacer hover (primary.main del theme).
- * - Subrayado animado progresivo (borde inferior).
- * - Transición suave de todos los efectos.
- * - cursor pointer explícito.
- * - Indicador de código de proceso en chip de color temático.
- *
- * Props:
- * - process {object}  Objeto de proceso con code, title, colorVariant, folderPath.
+ * Refactorizado para usar posicionamiento absoluto drag&drop.
+ * - Texto a max 2 líneas.
+ * - Tamaño de fuente reducido.
  */
 export default function ProcessPalette({ process }) {
     const [open, setOpen] = useState(false);
+    const { canViewProcess, loading } = useSigPermissions();
 
     const variant = PROCESS_COLOR_VARIANTS[process.colorVariant] || PROCESS_COLOR_VARIANTS.orange;
+
+    const handleOpen = () => {
+        if (loading) return;
+        
+        if (canViewProcess(process.code)) {
+            setOpen(true);
+        }
+    };
 
     return (
         <>
             <Box
                 component="button"
-                onClick={() => setOpen(true)}
+                onClick={handleOpen}
                 aria-label={`Ver documentos de ${process.title}`}
                 sx={{
                     // Reset de estilos de botón nativo
@@ -38,32 +41,17 @@ export default function ProcessPalette({ process }) {
                     border: 'none',
                     p: 0,
                     // Layout
-                    display: 'inline-flex',
+                    display: 'flex',
                     alignItems: 'center',
-                    gap: 1,
-                    width: '100%',
-                    cursor: 'pointer',
+                    gap: 0.75,
+                    width: 'auto',
+                    maxWidth: { xs: '120px', sm: '160px' }, // Limita el ancho para forzar salto de línea
+                    cursor: 'inherit', // Hereda el cursor de DraggableLabel (grab/grabbing/pointer)
                     // Estilo del contenedor
-                    py: { xs: 0.75, sm: 1 },
-                    px: { xs: 1, sm: 1.25 },
+                    py: 0.5,
+                    px: 0.5,
                     borderRadius: 1.5,
                     position: 'relative',
-                    // Línea inferior animada
-                    '&::after': {
-                        content: '""',
-                        position: 'absolute',
-                        bottom: 0,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: 0,
-                        height: '2px',
-                        borderRadius: '2px',
-                        bgcolor: variant.main,
-                        transition: 'width 200ms ease',
-                    },
-                    '&:hover::after': {
-                        width: 'calc(100% - 16px)',
-                    },
                     // Hover: leve fondo y color de texto
                     transition: 'background-color 150ms ease',
                     '&:hover': {
@@ -75,49 +63,29 @@ export default function ProcessPalette({ process }) {
                     },
                 }}
             >
-                {/* Código de proceso */}
-                <Box
-                    component="span"
-                    sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        bgcolor: variant.main,
-                        color: '#FFFFFF',
-                        px: 0.875,
-                        py: 0.25,
-                        borderRadius: 1,
-                        fontWeight: 700,
-                        fontSize: '0.7rem',
-                        letterSpacing: '0.5px',
-                        lineHeight: 1.4,
-                        flexShrink: 0,
-                        minWidth: 32,
-                        textAlign: 'center',
-                    }}
-                >
-                    {process.code}
-                </Box>
-
-                {/* Nombre del proceso */}
+                {/* Código y Nombre del proceso unificados y centrados */}
                 <Typography
                     component="span"
                     variant="body2"
                     sx={{
-                        fontWeight: 600,
-                        color: 'text.primary',
-                        fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-                        textAlign: 'left',
-                        lineHeight: 1.3,
+                        fontWeight: 700,
+                        // Color permanente de la variante del proceso (naranja, turquesa, etc.)
+                        color: variant.text,
+                        fontSize: { xs: '0.40rem', sm: '0.6rem', md: '0.65rem', lg: '1rem' },
+                        textAlign: 'center',
+                        lineHeight: 1.1,
                         transition: 'color 150ms ease',
                         flexGrow: 1,
-                        // El hover cambia el color al color del variante del proceso
-                        'button:hover &': {
-                            color: variant.text,
-                        },
+                        // Limitar a 2 o 3 líneas
+                        display: '-webkit-box',
+                        overflow: 'hidden',
+                        WebkitBoxOrient: 'vertical',
+                        WebkitLineClamp: 3,
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'pre-line', // Para respetar saltos de línea manuales (\n)
                     }}
                 >
-                    {process.title}
+                    {process.code} - {process.title}
                 </Typography>
             </Box>
 

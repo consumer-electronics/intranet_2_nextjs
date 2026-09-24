@@ -7,16 +7,15 @@ import { fetchEstructuraGeneral } from '@/api/sig/infoDocumentada';
 import useDebouncedValue from './useDebouncedValue';
 
 /**
- * Encapsula: fetch del árbol (según carpetaBase + búsqueda), estado de
- * búsqueda y estado de navegación por breadcrumbs (path).
+ * Encapsula: fetch del árbol (según carpetaBase + búsqueda) y estado de
+ * búsqueda.
  *
  * La navegación por carpetas es 100% client-side (no vuelve a pegarle al
- * backend): el árbol completo ya viene en la respuesta, solo cambiamos
- * qué nivel mostramos.
+ * backend): el árbol completo ya viene en la respuesta, lo mostramos
+ * como un árbol expandible.
  */
-export default function useFolderExplorer({ carpetaBase, active = true } = {}) {
+export default function useFolderExplorer({ carpetaBase, active = true, soloGenerales = false } = {}) {
     const [busqueda, setBusqueda] = useState('');
-    const [path, setPath] = useState([]);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -24,10 +23,9 @@ export default function useFolderExplorer({ carpetaBase, active = true } = {}) {
     const busquedaDebounced = useDebouncedValue(busqueda, 400);
     const enBusqueda = Boolean(busquedaDebounced.trim());
 
-    // Reinicia navegación/búsqueda cada vez que se activa el panel o cambia la raíz
+    // Reinicia búsqueda cada vez que se activa el panel o cambia la raíz
     useEffect(() => {
         if (active) {
-            setPath([]);
             setBusqueda('');
         }
     }, [active, carpetaBase]);
@@ -41,7 +39,7 @@ export default function useFolderExplorer({ carpetaBase, active = true } = {}) {
 
         (async () => {
             try {
-                const { data: respuesta } = await fetchEstructuraGeneral(busquedaDebounced, carpetaBase);
+                const { data: respuesta } = await fetchEstructuraGeneral(busquedaDebounced, carpetaBase, soloGenerales);
                 if (vivo) setData(respuesta ?? []);
             } catch (err) {
                 if (vivo) setError(err.message || 'No se pudo cargar la información.');
@@ -53,7 +51,7 @@ export default function useFolderExplorer({ carpetaBase, active = true } = {}) {
         return () => {
             vivo = false;
         };
-    }, [active, busquedaDebounced, carpetaBase]);
+    }, [active, busquedaDebounced, carpetaBase, soloGenerales]);
 
-    return { busqueda, setBusqueda, path, setPath, data, loading, error, enBusqueda };
+    return { busqueda, setBusqueda, data, loading, error, enBusqueda };
 }

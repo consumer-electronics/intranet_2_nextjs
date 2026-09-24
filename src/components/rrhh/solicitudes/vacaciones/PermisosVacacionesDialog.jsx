@@ -101,7 +101,6 @@ const FILTROS = [
     { id: ESTADO_VACACIONES.EN_ESPERA, label: 'En espera', lider: 1 },
     { id: ESTADO_VACACIONES.APROBADO, label: 'Aprobados', lider: 0 },
     { id: ESTADO_VACACIONES.RECHAZADO, label: 'Rechazados', lider: 0 },
-    { id: ESTADO_VACACIONES.FINALIZADO, label: 'Finalizados', lider: 0 },
 ];
 
 /**

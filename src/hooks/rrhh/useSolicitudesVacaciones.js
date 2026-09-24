@@ -12,6 +12,7 @@ import {
     getPeriodosYeminus,
     getVacacionesUsuario,
     modificarPdfVacaciones,
+    getDatosPermiso,
 } from '@/api/rrhh/solicitudesVacaciones';
 
 /**
@@ -212,6 +213,15 @@ export function useSolicitudesVacaciones(funId, usuario) {
     }, []);
 
     /**
+     * Obtiene los detalles de un permiso desde Yeminus / base de datos.
+     * @param {{ idUsu: number|string, idPermiso: number|string }} payload
+     */
+    const fetchDatosPermiso = useCallback(async (payload) => {
+        const data = await getDatosPermiso(payload);
+        return data;
+    }, []);
+
+    /**
      * Descarga el PDF ya generado de una solicitud de vacaciones.
      * @param {{ idPermiso: number|string, idUsu?: number|string }} payload
      */
@@ -376,6 +386,7 @@ export function useSolicitudesVacaciones(funId, usuario) {
         // Acciones de estado / creación
         cambiarEstado,
         crearVacaciones,
+        fetchDatosPermiso,
 
         // PDF
         descargarPdf,

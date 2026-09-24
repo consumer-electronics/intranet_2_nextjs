@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import FullCalendar from '@fullcalendar/react';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -30,6 +30,22 @@ export default function SalaJuntasCalendar({
 }) {
     const theme = useTheme();
     const resources = useMemo(() => SALAS, []);
+    const calendarRef = useRef(null);
+    const containerRef = useRef(null);
+
+    // Cuando el sidebar se abre/cierra el contenedor cambia de ancho.
+    // FullCalendar no lo detecta solo, hay que llamar updateSize() manualmente.
+    useEffect(() => {
+        if (!containerRef.current) return undefined;
+
+        const observer = new ResizeObserver(() => {
+            const api = calendarRef.current?.getApi();
+            if (api) api.updateSize();
+        });
+
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     const calendarEvents = useMemo(() => {
         return eventos.map((evento) => normalizarEvento(evento));
@@ -37,6 +53,7 @@ export default function SalaJuntasCalendar({
 
     return (
         <Box
+            ref={containerRef}
             sx={{
                 width: '100%',
                 position: 'relative',
@@ -143,6 +160,7 @@ export default function SalaJuntasCalendar({
             )}
 
             <FullCalendar
+                ref={calendarRef}
                 plugins={[interactionPlugin, resourceTimeGridPlugin]}
                 schedulerLicenseKey="GPL-My-Project-Is-Open-Source"
                 locale="es"
@@ -155,7 +173,6 @@ export default function SalaJuntasCalendar({
                 timeZone="local"
                 initialView="resourceTimeGridDay"
                 height={610}
-                contentHeight={610}
                 headerToolbar={{
                     left: 'prev,next today',
                     center: 'title',

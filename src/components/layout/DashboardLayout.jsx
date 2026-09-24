@@ -6,6 +6,8 @@ import Toolbar from '@mui/material/Toolbar';
 import { useTheme } from '@mui/material/styles';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { AppPermissionsProvider } from '@/providers/AppPermissionsProvider';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * src/components/layout/DashboardLayout.jsx
@@ -28,11 +30,17 @@ import Sidebar from './Sidebar';
  * dentro de Sidebar.jsx), el contenido se reacomoda solo cuando ese
  * ancho cambia. Solo el Header, al ser `position: fixed`, necesita
  * que se le indique el ancho vigente.
+ *
+ * AppPermissionsProvider se monta aquí para que los permisos de módulos
+ * se carguen en cuanto el usuario entra al área autenticada y queden
+ * cacheados en memoria durante toda la sesión de cliente. Esto permite
+ * que el Sidebar filtre los ítems sin parpadeos ni re-fetches.
  */
 export default function DashboardLayout({ children }) {
   const theme = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const { user } = useAuth();
 
   const drawerWidth = theme.custom?.drawerWidth ?? 272;
   const collapsedWidth = theme.custom?.drawerWidthCollapsed ?? 72;
@@ -43,20 +51,22 @@ export default function DashboardLayout({ children }) {
   }, []);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Header onMenuClick={() => setMobileOpen(true)} sidebarWidth={sidebarWidth} />
+    <AppPermissionsProvider user={user}>
+      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Header onMenuClick={() => setMobileOpen(true)} sidebarWidth={sidebarWidth} />
 
-      <Sidebar
-        mobileOpen={mobileOpen}
-        onMobileClose={() => setMobileOpen(false)}
-        onExpandedChange={handleExpandedChange}
-      />
+        <Sidebar
+          mobileOpen={mobileOpen}
+          onMobileClose={() => setMobileOpen(false)}
+          onExpandedChange={handleExpandedChange}
+        />
 
-      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        {/* Toolbar "fantasma" para compensar el AppBar fixed, patrón estándar de MUI */}
-        <Toolbar />
-        <Box sx={{ p: { xs: 2, md: 3 }, flexGrow: 1 }}>{children}</Box>
+        <Box component="main" sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          {/* Toolbar "fantasma" para compensar el AppBar fixed, patrón estándar de MUI */}
+          <Toolbar />
+          <Box sx={{ p: { xs: 2, md: 3 }, flexGrow: 1 }}>{children}</Box>
+        </Box>
       </Box>
-    </Box>
+    </AppPermissionsProvider>
   );
 }

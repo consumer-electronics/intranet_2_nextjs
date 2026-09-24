@@ -3,18 +3,18 @@
 import { useMemo, useState } from 'react';
 import ClearIcon from '@mui/icons-material/Clear';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
-import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import {
     Alert,
     Box,
-    Breadcrumbs,
-    Grid,
+    Collapse,
     IconButton,
     InputAdornment,
-    Link as MuiLink,
     Paper,
     Skeleton,
     Stack,
@@ -25,36 +25,51 @@ import {
 import PdfViewerModal from '@/components/common/documents/PdfViewerModal';
 
 import useFolderExplorer from '@/hooks/rrhh/sig/useFolderExplorer';
-import { aplanarArchivos, esPdf, normalizarNivel, obtenerNivelEnRuta } from '@/utils/rrhh/sig/folderTree';
+import { aplanarArchivos, esPdf, normalizarNivel } from '@/utils/rrhh/sig/folderTree';
 import { construirRutaBase, construirUrlArchivo } from '@/utils/rrhh/sig/documentUrl';
+import { useSigPermissions } from '@/hooks/rrhh/sig/useSigPermissions';
+import { FOLDER_PERMISSION_MAP } from '@/config/sig/permissions';
 
 /**
- * Explorador de carpetas reutilizable: breadcrumbs + grid de carpetas/archivos
- * cuando no hay búsqueda activa, y lista de resultados aplanados (con ruta)
- * cuando sí la hay. Se usa tanto inline (pestaña "Documentos generales")
+ * Explorador de carpetas reutilizable con árbol expandible inline.
+ * Las carpetas se abren hacia abajo en la misma vista (sin breadcrumbs ni
+ * cambio de vista). Se usa tanto inline (pestaña "Documentos generales")
  * como dentro de un Dialog (FolderExplorerModal, desde el Mapa de procesos).
  */
-export default function FolderBrowser({ carpetaBase, tituloRaiz = 'Documentos generales', active = true }) {
-    const { busqueda, setBusqueda, path, setPath, data, loading, error, enBusqueda } = useFolderExplorer({
+export default function FolderBrowser({ carpetaBase, tituloRaiz = 'Documentos generales', active = true, soloGenerales = false }) {
+    const { busqueda, setBusqueda, data, loading, error, enBusqueda } = useFolderExplorer({
         carpetaBase,
         active,
+        soloGenerales,
     });
+
+    const { canView } = useSigPermissions();
 
     const [documentoActivo, setDocumentoActivo] = useState(null);
 
     const rutaBase = useMemo(() => construirRutaBase(carpetaBase), [carpetaBase]);
 
-    const nivelActual = useMemo(() => {
-        if (enBusqueda) return null;
-        return obtenerNivelEnRuta(data, path);
-    }, [data, path, enBusqueda]);
-
-    const { carpetas, archivos } = useMemo(() => normalizarNivel(nivelActual), [nivelActual]);
+    /**
+     * Filtra las carpetas de un nivel aplicando el mapa de permisos.
+     */
+    const filtrarCarpetas = (carpetas) =>
+        carpetas.filter((carpeta) => {
+            const nombreLimpio = carpeta.nombre.replace(/^\d+\.\s*/, '').trim();
+            const permisoRequerido = FOLDER_PERMISSION_MAP[nombreLimpio];
+            return permisoRequerido ? canView(permisoRequerido) : true;
+        });
 
     const resultadosBusqueda = useMemo(() => {
         if (!enBusqueda) return [];
-        return aplanarArchivos(data);
-    }, [data, enBusqueda]);
+        const resultados = aplanarArchivos(data);
+        return resultados.filter((item) =>
+            item.rutaCarpetas.every((carpeta) => {
+                const nombreLimpio = carpeta.replace(/^\d+\.\s*/, '').trim();
+                const permisoRequerido = FOLDER_PERMISSION_MAP[nombreLimpio];
+                return permisoRequerido ? canView(permisoRequerido) : true;
+            })
+        );
+    }, [data, enBusqueda, canView]);
 
     const abrirArchivo = (archivo, rutaCarpetas) => {
         const url = construirUrlArchivo(rutaBase, rutaCarpetas, archivo);
@@ -64,9 +79,6 @@ export default function FolderBrowser({ carpetaBase, tituloRaiz = 'Documentos ge
             window.open(url, '_blank', 'noopener,noreferrer');
         }
     };
-
-    const irACarpeta = (nombre) => setPath((prev) => [...prev, nombre]);
-    const irABreadcrumb = (index) => setPath((prev) => prev.slice(0, index));
 
     return (
         <Stack spacing={2.5}>
@@ -94,42 +106,14 @@ export default function FolderBrowser({ carpetaBase, tituloRaiz = 'Documentos ge
                 }}
             />
 
-            {!enBusqueda && (
-                <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />}>
-                    <MuiLink
-                        component="button"
-                        underline={path.length ? 'hover' : 'none'}
-                        color={path.length ? 'primary' : 'text.primary'}
-                        onClick={() => irABreadcrumb(0)}
-                        sx={{ fontWeight: path.length ? 400 : 700 }}
-                    >
-                        {tituloRaiz}
-                    </MuiLink>
-                    {path.map((nombre, index) => (
-                        <MuiLink
-                            key={`${nombre}-${index}`}
-                            component="button"
-                            underline={index === path.length - 1 ? 'none' : 'hover'}
-                            color={index === path.length - 1 ? 'text.primary' : 'primary'}
-                            onClick={() => irABreadcrumb(index + 1)}
-                            sx={{ fontWeight: index === path.length - 1 ? 700 : 400 }}
-                        >
-                            {nombre}
-                        </MuiLink>
-                    ))}
-                </Breadcrumbs>
-            )}
-
             {error && <Alert severity="error">{error}</Alert>}
 
             {loading && (
-                <Grid container spacing={1.5}>
-                    {Array.from({ length: 6 }).map((_, i) => (
-                        <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
-                            <Skeleton variant="rounded" height={64} />
-                        </Grid>
+                <Stack spacing={1}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <Skeleton key={i} variant="rounded" height={46} />
                     ))}
-                </Grid>
+                </Stack>
             )}
 
             {!loading && !error && enBusqueda && (
@@ -137,11 +121,12 @@ export default function FolderBrowser({ carpetaBase, tituloRaiz = 'Documentos ge
             )}
 
             {!loading && !error && !enBusqueda && (
-                <NivelCarpeta
-                    carpetas={carpetas}
-                    archivos={archivos}
-                    onAbrirCarpeta={irACarpeta}
-                    onAbrirArchivo={(archivo) => abrirArchivo(archivo, path)}
+                <ArbolCarpeta
+                    contenido={data}
+                    rutaCarpetas={[]}
+                    filtrarCarpetas={filtrarCarpetas}
+                    onAbrirArchivo={abrirArchivo}
+                    nivel={0}
                 />
             )}
 
@@ -155,69 +140,149 @@ export default function FolderBrowser({ carpetaBase, tituloRaiz = 'Documentos ge
     );
 }
 
-function NivelCarpeta({ carpetas, archivos, onAbrirCarpeta, onAbrirArchivo }) {
-    if (carpetas.length === 0 && archivos.length === 0) {
+/**
+ * Nodo recursivo del árbol. Renderiza las carpetas (expandibles) y archivos
+ * del nivel recibido. Las sub-carpetas usan el mismo componente de forma recursiva.
+ */
+function ArbolCarpeta({ contenido, rutaCarpetas, filtrarCarpetas, onAbrirArchivo, nivel = 0, inicialmenteAbierto = false }) {
+    const { carpetas, archivos } = normalizarNivel(contenido);
+    const carpetasFiltradas = filtrarCarpetas(carpetas);
+
+    if (carpetasFiltradas.length === 0 && archivos.length === 0) {
         return (
-            <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderStyle: 'dashed' }}>
-                <Typography color="text.secondary">Esta carpeta no tiene contenido.</Typography>
-            </Paper>
+            <Box sx={{ pl: nivel * 2.5 }}>
+                <Paper variant="outlined" sx={{ p: 3, textAlign: 'center', borderStyle: 'dashed' }}>
+                    <Typography color="text.secondary" variant="body2">
+                        Esta carpeta no tiene contenido.
+                    </Typography>
+                </Paper>
+            </Box>
         );
     }
 
     return (
-        <Grid container spacing={1.5}>
-            {carpetas.map((carpeta) => (
-                <Grid key={carpeta.nombre} size={{ xs: 12, sm: 6, md: 4 }}>
-                    <Paper
-                        variant="outlined"
-                        onClick={() => onAbrirCarpeta(carpeta.nombre)}
-                        sx={{
-                            p: 1.75,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.25,
-                            cursor: 'pointer',
-                            borderRadius: 2,
-                            transition: 'border-color 150ms ease, background-color 150ms ease',
-                            '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-                        }}
-                    >
-                        <FolderOutlinedIcon color="primary" />
-                        <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-                            {carpeta.nombre}
-                        </Typography>
-                    </Paper>
-                </Grid>
+        <Stack spacing={0.5} sx={{ pl: nivel > 0 ? 2.5 : 0 }}>
+            {carpetasFiltradas.map((carpeta) => (
+                <CarpetaItem
+                    key={carpeta.nombre}
+                    carpeta={carpeta}
+                    rutaCarpetas={rutaCarpetas}
+                    filtrarCarpetas={filtrarCarpetas}
+                    onAbrirArchivo={onAbrirArchivo}
+                    nivel={nivel}
+                    inicialmenteAbierto={inicialmenteAbierto && nivel === 0}
+                />
             ))}
 
             {archivos.map((archivo) => (
-                <Grid key={archivo.archivo} size={{ xs: 12, sm: 6, md: 4 }}>
-                    <Paper
-                        variant="outlined"
-                        onClick={() => onAbrirArchivo(archivo.archivo)}
-                        sx={{
-                            p: 1.75,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.25,
-                            cursor: 'pointer',
-                            borderRadius: 2,
-                            transition: 'border-color 150ms ease, background-color 150ms ease',
-                            '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-                        }}
-                    >
-                        {esPdf(archivo.archivo) ? (
-                            <PictureAsPdfOutlinedIcon color="error" />
-                        ) : (
-                            <DescriptionOutlinedIcon color="action" />
-                        )}
-                        <Typography variant="body2" noWrap>
-                            {archivo.archivo.replace(/_/g, ' ')}
-                        </Typography>
-                    </Paper>
-                </Grid>
+                <ArchivoItem
+                    key={archivo.archivo}
+                    archivo={archivo.archivo}
+                    rutaCarpetas={rutaCarpetas}
+                    onAbrirArchivo={onAbrirArchivo}
+                    nivel={nivel}
+                />
             ))}
-        </Grid>
+        </Stack>
+    );
+}
+
+/**
+ * Fila de carpeta con toggle de expansión.
+ */
+function CarpetaItem({ carpeta, rutaCarpetas, filtrarCarpetas, onAbrirArchivo, nivel, inicialmenteAbierto }) {
+    const [abierta, setAbierta] = useState(inicialmenteAbierto);
+    const rutaHija = [...rutaCarpetas, carpeta.nombre];
+
+    return (
+        <Box>
+            <Paper
+                variant="outlined"
+                onClick={() => setAbierta((prev) => !prev)}
+                sx={{
+                    px: 1.75,
+                    py: 1.25,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.25,
+                    cursor: 'pointer',
+                    borderRadius: 2,
+                    bgcolor: abierta ? 'action.selected' : 'background.paper',
+                    transition: 'border-color 150ms ease, background-color 150ms ease',
+                    '&:hover': { borderColor: 'primary.main', bgcolor: abierta ? 'action.selected' : 'action.hover' },
+                    // Indentación visual por nivel (borde izquierdo de color)
+                    ...(nivel > 0 && {
+                        borderLeft: '3px solid',
+                        borderLeftColor: abierta ? 'primary.main' : 'divider',
+                    }),
+                }}
+            >
+                {abierta ? (
+                    <FolderOpenOutlinedIcon color="primary" sx={{ flexShrink: 0 }} />
+                ) : (
+                    <FolderOutlinedIcon color="primary" sx={{ flexShrink: 0 }} />
+                )}
+                <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, flex: 1, minWidth: 0 }}
+                >
+                    {carpeta.nombre}
+                </Typography>
+                {abierta ? (
+                    <ExpandLessIcon fontSize="small" color="action" sx={{ flexShrink: 0 }} />
+                ) : (
+                    <ExpandMoreIcon fontSize="small" color="action" sx={{ flexShrink: 0 }} />
+                )}
+            </Paper>
+
+            <Collapse in={abierta} timeout="auto" unmountOnExit>
+                <Box sx={{ mt: 0.5, mb: 0.5 }}>
+                    <ArbolCarpeta
+                        contenido={carpeta.contenido}
+                        rutaCarpetas={rutaHija}
+                        filtrarCarpetas={filtrarCarpetas}
+                        onAbrirArchivo={onAbrirArchivo}
+                        nivel={nivel + 1}
+                    />
+                </Box>
+            </Collapse>
+        </Box>
+    );
+}
+
+/**
+ * Fila de archivo con icono según extensión.
+ */
+function ArchivoItem({ archivo, rutaCarpetas, onAbrirArchivo, nivel }) {
+    return (
+        <Paper
+            variant="outlined"
+            onClick={() => onAbrirArchivo(archivo, rutaCarpetas)}
+            sx={{
+                px: 1.75,
+                py: 1.25,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.25,
+                cursor: 'pointer',
+                borderRadius: 2,
+                transition: 'border-color 150ms ease, background-color 150ms ease',
+                '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+                ...(nivel > 0 && {
+                    borderLeft: '3px solid',
+                    borderLeftColor: 'divider',
+                }),
+            }}
+        >
+            {esPdf(archivo) ? (
+                <PictureAsPdfOutlinedIcon color="error" sx={{ flexShrink: 0 }} />
+            ) : (
+                <DescriptionOutlinedIcon color="action" sx={{ flexShrink: 0 }} />
+            )}
+            <Typography variant="body2" sx={{ minWidth: 0 }}>
+                {archivo.replace(/_/g, ' ')}
+            </Typography>
+        </Paper>
     );
 }
 

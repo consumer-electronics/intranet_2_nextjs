@@ -25,6 +25,8 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import { useTheme } from '@mui/material/styles';
 
 import { menuItems } from '@/config/menuConfig';
+import { useContext } from 'react';
+import { AppPermissionsContext } from '@/providers/AppPermissionsProvider';
 
 /**
  * src/components/layout/Sidebar.jsx
@@ -80,6 +82,28 @@ function NavIcon({ Icon, active, showChildDot }) {
 }
 
 function SidebarContent({ pathname, expanded, onNavigate }) {
+  const { canView, loading } = useContext(AppPermissionsContext);
+
+  /**
+   * Determina si un ítem (o alguno de sus hijos) debe mostrarse.
+   * - Sin campo `permission` → siempre visible.
+   * - Con `permission` → visible solo si canView(permission) es true.
+   * - Durante `loading` los ítems con permiso se ocultan para evitar
+   *   parpadeos (en frío, el caché ya está cargado al navegar).
+   */
+  const isItemVisible = (item) => {
+    if (!item.permission) return true;
+    if (loading) return false;
+    
+    // Si permission es un array, es visible si el usuario tiene al menos uno (OR)
+    if (Array.isArray(item.permission)) {
+      return item.permission.some(perm => canView(perm));
+    }
+    
+    return canView(item.permission);
+  };
+
+
   const [openGroups, setOpenGroups] = useState(() => {
     const initial = {};
     menuItems.forEach((item) => {
@@ -114,9 +138,15 @@ function SidebarContent({ pathname, expanded, onNavigate }) {
 
             /* ITEM CON HIJOS */
             if (item.children) {
+              const visibleChildren = item.children.filter(
+                (child) => !child.hidden && isItemVisible(child)
+              );
+
+              // Si ningún hijo es visible, ocultar el grupo padre completo
+              if (visibleChildren.length === 0) return null;
+
               const childActive = hasActiveChild(item, pathname);
               const isOpen = expanded && (openGroups[item.key] ?? false);
-              const visibleChildren = item.children.filter((child) => !child.hidden);
 
               const parentButton = (
                 <ListItemButton
@@ -185,6 +215,8 @@ function SidebarContent({ pathname, expanded, onNavigate }) {
             }
 
             /* ITEM SIMPLE */
+            if (!isItemVisible(item)) return null;
+
             const selected = pathname === item.href || pathname.startsWith(item.href + '/');
             const simpleButton = (
               <ListItemButton

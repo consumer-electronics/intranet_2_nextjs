@@ -24,19 +24,7 @@ export default function CreserAdicionalModal({ open, onClose, type, encuestaId }
     // Estado para edición en línea (mapa de id -> { description, date })
     const [editingItems, setEditingItems] = useState({});
 
-    // Cargar información cuando se abre el modal
-    useEffect(() => {
-        if (open && type && encuestaId) {
-            fetchData();
-            // Limpiar estado nuevo
-            setNewDescription('');
-            setNewDate('');
-            setEditingItems({});
-            setError(null);
-        }
-    }, [open, type, encuestaId]);
-
-    const fetchData = async () => {
+    const fetchData = React.useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -57,7 +45,19 @@ export default function CreserAdicionalModal({ open, onClose, type, encuestaId }
         } finally {
             setLoading(false);
         }
-    };
+    }, [type, encuestaId]);
+
+    // Cargar información cuando se abre el modal
+    useEffect(() => {
+        if (open && type && encuestaId) {
+            fetchData();
+            // Limpiar estado nuevo
+            setNewDescription('');
+            setNewDate('');
+            setEditingItems({});
+            setError(null);
+        }
+    }, [open, type, encuestaId, fetchData]);
 
     const handleSaveNew = async () => {
         if (!newDescription.trim()) {

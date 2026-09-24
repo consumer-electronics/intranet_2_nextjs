@@ -17,13 +17,14 @@ import { useSigPermissions } from '@/hooks/rrhh/sig/useSigPermissions';
 export default function ProcessPalette({ process }) {
     const [open, setOpen] = useState(false);
     const { canViewProcess, loading } = useSigPermissions();
-    const hasAccess = canViewProcess(process.code);
 
     const variant = PROCESS_COLOR_VARIANTS[process.colorVariant] || PROCESS_COLOR_VARIANTS.orange;
 
     const handleOpen = () => {
-        if (loading || !hasAccess) return;
-        setOpen(true);
+        if (loading) return;
+        if (canViewProcess(process.code)) {
+            setOpen(true);
+        }
     };
 
     return (
@@ -31,7 +32,6 @@ export default function ProcessPalette({ process }) {
             <Box
                 component="button"
                 onClick={handleOpen}
-                disabled={loading || !hasAccess}
                 aria-label={`Ver documentos de ${process.title}`}
                 sx={{
                     // Reset de estilos de botón nativo
@@ -45,20 +45,19 @@ export default function ProcessPalette({ process }) {
                     gap: 0.75,
                     width: 'auto',
                     maxWidth: { xs: '120px', sm: '160px' }, // Limita el ancho para forzar salto de línea
-                    cursor: loading ? 'wait' : (hasAccess ? 'pointer' : 'not-allowed'),
-                    opacity: loading ? 0.7 : (hasAccess ? 1 : 0.6),
+                    cursor: 'pointer',
                     // Estilo del contenedor
                     py: 0.5,
                     px: 0.5,
                     borderRadius: 1.5,
                     position: 'relative',
                     // Hover: leve fondo y color de texto
-                    transition: 'all 150ms ease',
+                    transition: 'background-color 150ms ease',
                     '&:hover': {
-                        bgcolor: (!loading && hasAccess) ? variant.bg : 'transparent',
+                        bgcolor: variant.bg,
                     },
                     '&:focus-visible': {
-                        outline: (!loading && hasAccess) ? `2px solid ${variant.main}` : 'none',
+                        outline: `2px solid ${variant.main}`,
                         outlineOffset: 2,
                     },
                 }}

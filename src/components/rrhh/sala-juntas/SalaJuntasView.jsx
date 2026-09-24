@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -66,6 +66,10 @@ export default function SalaJuntasView() {
     const [dialogDetalleOpen, setDialogDetalleOpen] = useState(false);
     const [seleccion, setSeleccion] = useState(null);
 
+    // Rango activo del calendario: se actualiza en cada datesSet para que las
+    // recargas tras guardar/eliminar usen el mismo rango visible, no el inicial.
+    const rangoActivoRef = useRef(null);
+
     const [notificacion, setNotificacion] = useState({
         open: false,
         severity: 'info',
@@ -79,10 +83,13 @@ export default function SalaJuntasView() {
         const fin = new Date(inicio);
         fin.setDate(fin.getDate() + 1);
 
-        cargarReservaciones({
-            start: formatearFechaConsulta(inicio),
-            end: formatearFechaConsulta(fin),
-        }).catch(() => { });
+        const start = formatearFechaConsulta(inicio);
+        const end = formatearFechaConsulta(fin);
+
+        // Guardar rango inicial para que las recargas posteriores lo usen
+        rangoActivoRef.current = { start, end };
+
+        cargarReservaciones({ start, end }).catch(() => { });
     }, [cargarReservaciones]);
 
     const mostrarNotificacion = useCallback((message, severity = 'info') => {
@@ -205,6 +212,7 @@ export default function SalaJuntasView() {
                 const response = await guardarReservacion({
                     ...datos,
                     idusu,
+                    _rango: rangoActivoRef.current,
                 });
 
                 const correcto =
@@ -240,7 +248,7 @@ export default function SalaJuntasView() {
     const handleEliminar = useCallback(
         async (evento) => {
             try {
-                const response = await borrarReservacion(evento.id);
+                const response = await borrarReservacion(evento.id, rangoActivoRef.current);
 
                 const correcto =
                     response === 1 ||
@@ -285,12 +293,12 @@ export default function SalaJuntasView() {
                     sx={{
                         p: 1.2,
                         borderRadius: 2,
-                        bgcolor: 'primary.light',
+                        // Fondo sutil sin capa opaca que tape el ícono
+                        bgcolor: (t) => `${t.palette.primary.main}18`,
                         color: 'primary.main',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        opacity: 0.9,
                     }}
                 >
                     <MeetingRoomRoundedIcon fontSize="medium" />
@@ -347,10 +355,11 @@ export default function SalaJuntasView() {
                     onSeleccion={handleSeleccion}
                     onEventoClick={handleEventoClick}
                     onDatesSet={(dateInfo) => {
-                        cargarReservaciones({
-                            start: formatearFechaConsulta(dateInfo.start),
-                            end: formatearFechaConsulta(dateInfo.end),
-                        }).catch(() => { });
+                        const start = formatearFechaConsulta(dateInfo.start);
+                        const end = formatearFechaConsulta(dateInfo.end);
+                        // Mantener el rango activo actualizado para recargas post-eliminar/guardar
+                        rangoActivoRef.current = { start, end };
+                        cargarReservaciones({ start, end }).catch(() => { });
                     }}
                     loading={loading || validando}
                 />

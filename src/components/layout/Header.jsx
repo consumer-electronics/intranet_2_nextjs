@@ -22,6 +22,7 @@ import { useTheme } from '@mui/material/styles';
 import ThemeToggle from '@/components/theme/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import { menuItems } from '@/config/menuConfig';
+import { clearAppPermissionsCache } from '@/providers/AppPermissionsProvider';
 
 /**
  * src/components/layout/Header.jsx
@@ -73,6 +74,7 @@ export default function Header({ onMenuClick, sidebarWidth = 0 }) {
 
   const handleLogout = async () => {
     handleMenuClose();
+    clearAppPermissionsCache();
     await logout();
   };
 

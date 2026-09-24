@@ -81,16 +81,16 @@ export default function SolicitudesModulo({ children }) {
             },
         ];
         // TODO: modulo no funciona en productivo, revisar, corregir y luego implementar aca, comentado para que no de error en compilacion
-        // if (puedeVerRegistro) {
-        //     lista.push({
-        //         key: 'registro',
-        //         label: 'Registro',
-        //         icon: <MenuBookIcon fontSize="small" />,
-        //         href: '/rrhh/solicitudes/registro',
-        //     });
-        // }
+        if (puedeVerRegistro) {
+            lista.push({
+                key: 'registro',
+                label: 'Registro',
+                icon: <MenuBookIcon fontSize="small" />,
+                href: '/rrhh/solicitudes/registro',
+            });
+        }
         return lista;
-    }, [numeroVacaciones]);
+    }, [numeroVacaciones, puedeVerRegistro]);
 
     const activeTab = useMemo(() => {
         if (pathname.includes('/registro')) return 'registro';

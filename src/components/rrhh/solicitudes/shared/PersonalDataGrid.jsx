@@ -128,7 +128,7 @@ const PersonalDataGrid = forwardRef(function PersonalDataGrid(
                 : source.map((row) => ({
                       Nombre: row.nombre ?? '',
                       'Permisos pendientes': row.permisosPendientes ?? '',
-                      'Carta de retiro': row.cartaRenuncia ?? '',
+                      // 'Carta de retiro': row.cartaRenuncia ?? '',
                   }));
 
             const worksheet = XLSX.utils.json_to_sheet(data);
@@ -207,7 +207,7 @@ const PersonalDataGrid = forwardRef(function PersonalDataGrid(
             sortable: true,
         },
         columnConteo,
-        ...(!esVacaciones
+        /* ...(!esVacaciones
             ? [
                   {
                       field: 'cartaRenuncia',
@@ -231,30 +231,7 @@ const PersonalDataGrid = forwardRef(function PersonalDataGrid(
                       },
                   },
               ]
-            : []),
-        {
-            field: 'acciones',
-            headerName: 'Acciones',
-            width: 100,
-            align: 'center',
-            headerAlign: 'center',
-            sortable: false,
-            renderCell: (params) => (
-                <Tooltip title={esVacaciones ? 'Ver vacaciones' : 'Ver permisos'}>
-                    <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            onRowClick?.(params.row);
-                        }}
-                        aria-label={esVacaciones ? 'Ver vacaciones' : 'Ver permisos'}
-                    >
-                        <OpenInNewIcon fontSize="small" />
-                    </IconButton>
-                </Tooltip>
-            ),
-        },
+            : []), */
     ];
 
     return (

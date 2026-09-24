@@ -1,20 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import { Box, Paper, Tab, Tabs } from '@mui/material';
 
 import DocumentosGeneralesPanel from './DocumentosGeneralesPanel';
 import MapaProcesos from '../mapa-procesos/MapaProcesos';
-
-const TABS = [
-    { id: 'mapa', label: 'Mapa de procesos', icon: <AccountTreeOutlinedIcon fontSize="small" /> },
-    { id: 'documentos', label: 'Documentos generales', icon: <FolderOutlinedIcon fontSize="small" /> },
-];
+import { AppPermissionsContext } from '@/providers/AppPermissionsProvider';
 
 export default function InfoDocumentadaView() {
+    const { loading } = useContext(AppPermissionsContext);
+
+    // Mapa de procesos siempre es visible para todos
     const [tabActivo, setTabActivo] = useState('mapa');
+
+    if (loading) return null;
+
+    const TABS = [
+        { id: 'mapa', label: 'Mapa de procesos', icon: <AccountTreeOutlinedIcon fontSize="small" /> },
+        { id: 'documentos', label: 'Documentos generales', icon: <FolderOutlinedIcon fontSize="small" /> }
+    ];
 
     return (
         <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>

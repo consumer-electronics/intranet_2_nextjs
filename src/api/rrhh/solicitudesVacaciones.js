@@ -187,3 +187,16 @@ export async function enviarCorreoVacaciones(payload) {
     });
     return handleResponse(response);
 }
+
+/**
+ * Obtiene los detalles (fecha fin, reintegro, token, etc) de una solicitud creada.
+ * @param {object} payload - { idUsu, idPermiso }
+ */
+export async function getDatosPermiso(payload) {
+    const response = await fetch(`${BASE_API}/datos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+}

@@ -101,7 +101,6 @@ const FILTROS = [
     { id: ESTADO_PERMISO.EN_ESPERA, label: 'En espera', lider: 1 },
     { id: ESTADO_PERMISO.APROBADO, label: 'Aprobados', lider: 0 },
     { id: ESTADO_PERMISO.RECHAZADO, label: 'Rechazados', lider: 0 },
-    { id: ESTADO_PERMISO.FINALIZADO, label: 'Finalizados', lider: 0 },
 ];
 
 /**

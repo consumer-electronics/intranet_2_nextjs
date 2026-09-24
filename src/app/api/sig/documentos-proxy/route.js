@@ -1,19 +1,27 @@
 import { NextResponse } from 'next/server';
 
-function filterTree(tree, filterLower) {
-    if (!filterLower) return tree;
+function filterTree(tree, filterLower, soloGenerales = false) {
+    if (!filterLower && !soloGenerales) return tree;
     const result = [];
     
     for (const entry of tree) {
         const key = Object.keys(entry)[0];
         if (key === 'archivo') {
-            if (entry.archivo.toLowerCase().includes(filterLower)) {
+            const isGeneral = entry.archivo.startsWith('_');
+            if (soloGenerales && !isGeneral) {
+                continue;
+            }
+            if (!filterLower || entry.archivo.toLowerCase().includes(filterLower)) {
                 result.push(entry);
             }
         } else {
             const folderName = key;
-            const subContent = filterTree(entry[folderName], filterLower);
-            if (subContent.length > 0 || folderName.toLowerCase().includes(filterLower)) {
+            const subContent = filterTree(entry[folderName], filterLower, soloGenerales);
+            if (subContent.length > 0 || (folderName.toLowerCase().includes(filterLower) && !soloGenerales)) {
+                // If it's soloGenerales, we only want to keep folders that actually contain general files
+                if (soloGenerales && subContent.length === 0) {
+                    continue;
+                }
                 result.push({ [folderName]: subContent });
             }
         }
@@ -57,8 +65,9 @@ export async function GET(request) {
 
         const json = await res.json();
         const rawData = json.data || [];
+        const soloGenerales = searchParams.get('soloGenerales') === 'true';
 
-        const data = filterTree(rawData, filtro.toLowerCase());
+        const data = filterTree(rawData, filtro.toLowerCase(), soloGenerales);
 
         return NextResponse.json({ success: true, data });
 

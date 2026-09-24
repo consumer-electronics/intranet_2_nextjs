@@ -233,57 +233,69 @@ export default function RegistroView() {
                     </Typography>
                 </Box>
 
-                {/* ── Filtros ── */}
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    flexWrap="wrap"
-                    useFlexGap
-                    spacing={2}
-                    sx={{ px: 3, pb: 2, borderBottom: 1, borderColor: 'divider' }}
+                {/* ── Barra Única de Filtros y Acciones ── */}
+                <Box
+                    sx={{
+                        px: 3,
+                        py: 2,
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: 1.5,
+                        backgroundColor: (theme) =>
+                            theme.palette.mode === 'dark'
+                                ? 'rgba(255, 255, 255, 0.02)'
+                                : 'rgba(0, 0, 0, 0.01)',
+                    }}
                 >
-                    <TextField
-                        select
-                        label="Año"
-                        value={ano}
-                        onChange={handleAnoChange}
-                        size="small"
-                        sx={{ minWidth: 160 }}
-                        disabled={loadingYears}
-                    >
-                        <MenuItem value="" disabled>
-                            Seleccione un año
-                        </MenuItem>
-                        {years.map((y) => (
-                            <MenuItem key={y} value={y}>
-                                {y}
+                    {/* Selectores Año y Mes (grupo compacto con ancho fijo) */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+                        <TextField
+                            select
+                            label="Año"
+                            value={ano}
+                            onChange={handleAnoChange}
+                            size="small"
+                            sx={{ width: 110 }}
+                            disabled={loadingYears}
+                        >
+                            <MenuItem value="" disabled>
+                                Seleccione un año
                             </MenuItem>
-                        ))}
-                    </TextField>
+                            {years.map((y) => (
+                                <MenuItem key={y} value={y}>
+                                    {y}
+                                </MenuItem>
+                            ))}
+                        </TextField>
 
-                    <TextField
-                        select
-                        label="Mes"
-                        value={mes}
-                        onChange={handleMesChange}
-                        size="small"
-                        sx={{ minWidth: 180 }}
-                        disabled={!ano || loadingMonths}
-                    >
-                        <MenuItem value="TODOS">-- TODOS --</MenuItem>
-                        <MenuItem value="" disabled>
-                            Seleccione un mes
-                        </MenuItem>
-                        {months.map((m) => (
-                            <MenuItem key={m} value={m}>
-                                {NOMBRES_MESES[m - 1] ?? m}
+                        <TextField
+                            select
+                            label="Mes"
+                            value={mes}
+                            onChange={handleMesChange}
+                            size="small"
+                            sx={{ width: 140 }}
+                            disabled={!ano || loadingMonths}
+                        >
+                            <MenuItem value="TODOS">-- TODOS --</MenuItem>
+                            <MenuItem value="" disabled>
+                                Seleccione un mes
                             </MenuItem>
-                        ))}
-                    </TextField>
+                            {months.map((m) => (
+                                <MenuItem key={m} value={m}>
+                                    {NOMBRES_MESES[m - 1] ?? m}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    </Box>
 
-                    <Divider orientation="vertical" flexItem />
+                    <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
 
-                    <Stack direction="row" flexWrap="wrap" useFlexGap spacing={1}>
+                    {/* Botones de Motivo */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                         {MOTIVOS_REGISTRO.map((m) => (
                             <Button
                                 key={m.id}
@@ -292,51 +304,57 @@ export default function RegistroView() {
                                 size="small"
                                 disabled={!mes}
                                 onClick={() => handleMotivoClick(m.id)}
+                                sx={{
+                                    borderRadius: 2,
+                                    px: 1.75,
+                                    textTransform: 'none',
+                                    fontWeight: motivo === m.id ? 600 : 400,
+                                    boxShadow: motivo === m.id ? 1 : 0,
+                                    height: 36,
+                                }}
                             >
                                 {m.label}
                             </Button>
                         ))}
-                    </Stack>
+                    </Box>
 
                     <Box sx={{ flexGrow: 1 }} />
 
-                    <Tooltip title="Consultar">
-                        <span>
-                            <Button
-                                variant="contained"
-                                startIcon={<SearchIcon />}
-                                disabled={!ano || !mes || !motivo || loadingRows}
-                                onClick={() => fetchRegistros({ ano, mes, motivo })}
+                    {/* Acciones (Exportar y Refrescar) */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Tooltip title="Exportar Excel">
+                            <span>
+                                <Button
+                                    variant="outlined"
+                                    startIcon={<EventNoteIcon />}
+                                    onClick={() => tableRef.current?.triggerExport()}
+                                    disabled={rows.length === 0}
+                                    size="small"
+                                    sx={{ textTransform: 'none', px: 2, height: 36 }}
+                                >
+                                    Exportar
+                                </Button>
+                            </span>
+                        </Tooltip>
+                        <Tooltip title="Sincronizar datos">
+                            <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={handleSync}
+                                aria-label="Sincronizar datos"
+                                sx={{
+                                    border: 1,
+                                    borderColor: 'divider',
+                                    borderRadius: 1.5,
+                                    width: 36,
+                                    height: 36,
+                                }}
                             >
-                                Consultar
-                            </Button>
-                        </span>
-                    </Tooltip>
-
-                    <Tooltip title="Exportar Excel">
-                        <span>
-                            <Button
-                                variant="outlined"
-                                startIcon={<EventNoteIcon />}
-                                onClick={() => tableRef.current?.triggerExport()}
-                                disabled={rows.length === 0}
-                            >
-                                Exportar
-                            </Button>
-                        </span>
-                    </Tooltip>
-
-                    <Tooltip title="Sincronizar">
-                        <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={handleSync}
-                            aria-label="Sincronizar datos"
-                        >
-                            <SyncIcon />
-                        </IconButton>
-                    </Tooltip>
-                </Stack>
+                                <SyncIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                </Box>
 
                 {/* ── Contenido ── */}
                 <Box sx={{ p: 3 }}>

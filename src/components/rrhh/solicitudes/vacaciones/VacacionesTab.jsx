@@ -50,11 +50,14 @@ export default function VacacionesTab({ funcionarioId, user }) {
         // Acciones
         cambiarEstado,
         crearVacaciones,
+        fetchDatosPermiso,
         // PDF
         generarPdf,
+        descargarPdf,
         marcarPdfAprobado,
         marcarPdfReversado,
         // Correos
+        enviarCorreoCreacion,
         enviarCorreoAprobacion,
         enviarCorreoRechazo,
         // Badge
@@ -190,18 +193,13 @@ export default function VacacionesTab({ funcionarioId, user }) {
         if (!row?.idPermiso) return;
         setImprimiendoId(row.idPermiso);
         try {
-            await generarPdf({
-                nombre: row.nombre || user?.nombre || user?.fun_nombre_completo || '',
-                idUsu: row.idUsu ?? row.id,
-                dias: row.dias,
-                fechaInicio: row.fechaInicio,
-                fechaFin: row.fechaFin,
-                fechaReintegro: row.fechaReintegro,
+            await descargarPdf({
                 idPermiso: row.idPermiso,
+                idUsu: row.idUsu ?? row.id,
             });
-            notify('PDF generado correctamente.');
+            notify('PDF descargado correctamente.');
         } catch (err) {
-            notify(err?.message || 'Error al generar el PDF.', 'error');
+            notify(err?.message || 'Error al descargar el PDF.', 'error');
         } finally {
             setImprimiendoId(null);
         }
@@ -210,7 +208,41 @@ export default function VacacionesTab({ funcionarioId, user }) {
     const handleSolicitarSubmit = async (formData) => {
         setEnviando(true);
         try {
-            await crearVacaciones(formData);
+            const response = await crearVacaciones(formData);
+            const idPermiso = response?.data?.sp_id ?? response?.data;
+            
+            if (idPermiso) {
+                try {
+                    const idUsu = funcionarioId;
+                    const datosResponse = await fetchDatosPermiso({ idUsu, idPermiso });
+                    const datoss = datosResponse?.data || {};
+
+                    await generarPdf({
+                        nombre: user?.nombre || user?.fun_nombre_completo || '',
+                        idUsu: idUsu,
+                        dias: datoss.sp_dias,
+                        fechaInicio: datoss.sp_fecha_inicio,
+                        fechaFin: datoss.sp_fecha_fin,
+                        fechaReintegro: datoss.sp_fecha_reintegro,
+                        idPermiso: idPermiso,
+                    });
+
+                    await enviarCorreoCreacion({
+                        nombre: user?.nombre || user?.fun_nombre_completo || '',
+                        id: idUsu,
+                        fechaIni: datoss.sp_fecha_inicio,
+                        fechaFin: datoss.sp_fecha_fin,
+                        fechaReintegro: datoss.sp_fecha_reintegro,
+                        numDias: datoss.sp_dias,
+                        respPermiso: idPermiso,
+                        token: datoss.token,
+                        observaciones: datoss.sp_observaciones || formData.get('observaciones'),
+                    });
+                } catch (e) {
+                    console.error('Error post-creacion:', e);
+                }
+            }
+
             setSolicitarOpen(false);
             notify('Solicitud de vacaciones enviada correctamente.');
             await Promise.all([fetchNumeroVacaciones(), fetchPersonal(modoLista)]);

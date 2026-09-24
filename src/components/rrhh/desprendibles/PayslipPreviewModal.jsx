@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import DownloadIcon from '@mui/icons-material/Download';
 import Box from '@mui/material/Box';
@@ -23,15 +23,66 @@ import { useAuth } from '@/hooks/useAuth';
 // Configurar el worker de PDF.js
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-export default function PayslipPreviewModal({ open, file, previewUrl, loading, onClose, onDownload }) {
+/**
+ * Modal de previsualización de desprendibles de nómina.
+ *
+ * Props:
+ * - open        {boolean}   Si el modal está abierto.
+ * - file        {object}    Objeto del desprendible seleccionado { doc, date, ... }.
+ * - previewUrl  {string}    URL del PDF para previsualizar.
+ * - loading     {boolean}   Si está cargando la URL de previsualización.
+ * - isMobile    {boolean}   Si el dispositivo es móvil (activa fullScreen).
+ * - onClose     {function}  Callback para cerrar el modal.
+ * - onDownload  {function}  Callback para descargar el desprendible.
+ */
+export default function PayslipPreviewModal({
+    open,
+    file,
+    previewUrl,
+    loading,
+    isMobile = false,
+    onClose,
+    onDownload,
+}) {
     const { user } = useAuth();
-    const cedula = user?.dni || user?.cedula || user?.fun_cedula || user?.fun_usuario || user?.id_usuario;
+    const cedula =
+        user?.dni ||
+        user?.cedula ||
+        user?.fun_cedula ||
+        user?.fun_usuario ||
+        user?.id_usuario;
+
     const [numPages, setNumPages] = useState(null);
     const [passwordRequest, setPasswordRequest] = useState(null);
     const [passwordInput, setPasswordInput] = useState('');
     const [pdfError, setPdfError] = useState(null);
+    const [pageWidth, setPageWidth] = useState(760);
+    const contentRef = useRef(null);
 
-    // Reiniciar estado cuando el modal se cierra o abre
+    // Calcula el ancho disponible para el Page de react-pdf de forma responsiva.
+    // Se resta el padding del DialogContent para evitar scroll horizontal.
+    const updatePageWidth = useCallback(() => {
+        if (contentRef.current) {
+            setPageWidth(Math.max(280, contentRef.current.clientWidth - 32));
+        }
+    }, []);
+
+    // Medir el ancho cuando el modal se abre (con pequeño delay para que el DOM esté listo)
+    useEffect(() => {
+        if (!open) return undefined;
+        const timer = setTimeout(updatePageWidth, 80);
+        return () => clearTimeout(timer);
+    }, [open, updatePageWidth]);
+
+    // Actualizar el ancho si el contenedor cambia de tamaño (ej: rotación de pantalla)
+    useEffect(() => {
+        if (!contentRef.current || !open) return undefined;
+        const observer = new ResizeObserver(updatePageWidth);
+        observer.observe(contentRef.current);
+        return () => observer.disconnect();
+    }, [open, updatePageWidth]);
+
+    // Reiniciar estado cuando el modal se cierra
     useEffect(() => {
         if (!open) {
             setNumPages(null);
@@ -41,8 +92,8 @@ export default function PayslipPreviewModal({ open, file, previewUrl, loading, o
         }
     }, [open]);
 
-    const onDocumentLoadSuccess = ({ numPages }) => {
-        setNumPages(numPages);
+    const onDocumentLoadSuccess = ({ numPages: total }) => {
+        setNumPages(total);
         setPasswordRequest(null);
     };
 
@@ -53,7 +104,7 @@ export default function PayslipPreviewModal({ open, file, previewUrl, loading, o
         }
     };
 
-    // Callback llamado por react-pdf cuando pide contraseña
+    // Callback de react-pdf cuando el PDF pide contraseña
     const onPassword = (callback, reason) => {
         // reason 1 = NEED_PASSWORD, 2 = INCORRECT_PASSWORD
         setPasswordRequest({ callback, reason });
@@ -61,26 +112,49 @@ export default function PayslipPreviewModal({ open, file, previewUrl, loading, o
 
     const handlePasswordSubmit = () => {
         if (passwordRequest?.callback) {
-            // Pasamos la contraseña digitada a react-pdf
             passwordRequest.callback(passwordInput);
         }
     };
 
     const handlePasswordCancel = () => {
         setPasswordRequest(null);
-        onClose(); // Cerramos el visor completo si el usuario cancela
+        onClose();
     };
 
     return (
         <>
-            <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-                <DialogTitle>
-                    Vista previa del PDF
-                    <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8 }}>
+            {/* ── Modal principal de visualización ── */}
+            <Dialog
+                open={open}
+                onClose={onClose}
+                maxWidth="lg"
+                fullWidth
+                fullScreen={isMobile}
+            >
+                <DialogTitle sx={{ pr: 6 }}>
+                    {file?.doc || 'Vista previa del PDF'}
+                    <IconButton
+                        onClick={onClose}
+                        aria-label="Cerrar"
+                        sx={{ position: 'absolute', right: 8, top: 8 }}
+                    >
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
-                <DialogContent dividers sx={{ height: '70vh', p: 0, backgroundColor: '#525659', display: 'flex', justifyContent: 'center', overflow: 'auto' }}>
+
+                <DialogContent
+                    ref={contentRef}
+                    dividers
+                    sx={{
+                        // En móvil fullScreen el alto se calcula sobre el viewport dinámico
+                        height: isMobile ? 'calc(100dvh - 130px)' : '70vh',
+                        p: isMobile ? 1 : 2,
+                        backgroundColor: '#525659',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        overflow: 'auto',
+                    }}
+                >
                     {loading ? (
                         <Stack alignItems="center" justifyContent="center" height="100%">
                             <CircularProgress sx={{ color: 'white' }} />
@@ -95,7 +169,7 @@ export default function PayslipPreviewModal({ open, file, previewUrl, loading, o
                                 file={previewUrl}
                                 onLoadSuccess={onDocumentLoadSuccess}
                                 onLoadError={onDocumentLoadError}
-                                password={cedula} // Intento automático con cédula
+                                password={cedula}
                                 onPassword={onPassword}
                                 loading={
                                     <Stack alignItems="center" justifyContent="center" height="100%" mt={10}>
@@ -104,12 +178,17 @@ export default function PayslipPreviewModal({ open, file, previewUrl, loading, o
                                 }
                             >
                                 {Array.from(new Array(numPages || 0), (el, index) => (
-                                    <Box key={`page_${index + 1}`} sx={{ mb: 2, mt: index === 0 ? 2 : 0, boxShadow: 3 }}>
-                                        <Page 
-                                            pageNumber={index + 1} 
+                                    <Box
+                                        key={`page_${index + 1}`}
+                                        sx={{ mb: 2, mt: index === 0 ? 2 : 0, boxShadow: 3 }}
+                                    >
+                                        <Page
+                                            pageNumber={index + 1}
                                             renderTextLayer={false}
                                             renderAnnotationLayer={false}
-                                            width={800}
+                                            // Ancho calculado dinámicamente para adaptarse al contenedor
+                                            // tanto en móvil (pantalla completa) como en desktop
+                                            width={pageWidth}
                                         />
                                     </Box>
                                 ))}
@@ -117,20 +196,39 @@ export default function PayslipPreviewModal({ open, file, previewUrl, loading, o
                         )
                     )}
                 </DialogContent>
-                <DialogActions>
-                    <Button startIcon={<DownloadIcon />} onClick={onDownload}>
+
+                <DialogActions sx={{ px: 2, py: 1.5, gap: 1 }}>
+                    <Button
+                        variant="contained"
+                        startIcon={<DownloadIcon />}
+                        onClick={onDownload}
+                        color="primary"
+                        sx={{ textTransform: 'none', fontWeight: 600 }}
+                    >
                         Descargar
+                    </Button>
+                    <Button
+                        onClick={onClose}
+                        color="inherit"
+                        sx={{ textTransform: 'none' }}
+                    >
+                        Cerrar
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            {/* Modal de Contraseña Personalizado */}
-            <Dialog open={Boolean(passwordRequest)} onClose={handlePasswordCancel} maxWidth="xs" fullWidth>
+            {/* ── Modal de contraseña (PDF protegido) ── */}
+            <Dialog
+                open={Boolean(passwordRequest)}
+                onClose={handlePasswordCancel}
+                maxWidth="xs"
+                fullWidth
+            >
                 <DialogTitle>Documento Protegido</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" sx={{ mb: 2 }}>
-                        {passwordRequest?.reason === 2 
-                            ? 'La contraseña ingresada es incorrecta. Por favor, intenta de nuevo.' 
+                        {passwordRequest?.reason === 2
+                            ? 'La contraseña ingresada es incorrecta. Por favor, intenta de nuevo.'
                             : 'Este documento PDF está protegido. Ingresa tu número de documento de identidad para desbloquearlo.'}
                     </Typography>
                     <TextField
@@ -143,9 +241,7 @@ export default function PayslipPreviewModal({ open, file, previewUrl, loading, o
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                handlePasswordSubmit();
-                            }
+                            if (e.key === 'Enter') handlePasswordSubmit();
                         }}
                     />
                 </DialogContent>

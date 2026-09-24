@@ -75,6 +75,7 @@ export default function useSalaJuntas() {
 
     /**
      * Crea una nueva reservación.
+     * @param {object} rango - Rango activo del calendario { start, end } para recargar.
      */
     const guardarReservacion = useCallback(
         async ({
@@ -85,6 +86,7 @@ export default function useSalaJuntas() {
             idusu,
             idUsu,
             userId,
+            _rango,
             ...resto
         }) => {
             setGuardando(true);
@@ -100,7 +102,7 @@ export default function useSalaJuntas() {
                     ...resto,
                 });
 
-                await cargarReservaciones();
+                await cargarReservaciones(_rango ?? undefined);
 
                 return data;
             } catch (err) {
@@ -115,17 +117,20 @@ export default function useSalaJuntas() {
     );
 
     /**
-     * Elimina una reservación.
+     * Elimina una reservación y recarga el rango activo del calendario.
+     * @param {string|number} id - ID de la reservación a eliminar.
+     * @param {object} [rango] - Rango activo { start, end } para recargar la vista correcta.
      */
     const borrarReservacion = useCallback(
-        async (id) => {
+        async (id, rango) => {
             setEliminando(true);
             setError('');
 
             try {
                 const data = await eliminarReservacion(id);
 
-                await cargarReservaciones();
+                // Recargar con el rango que el usuario tenía visible, no el rango inicial
+                await cargarReservaciones(rango ?? undefined);
 
                 return data;
             } catch (err) {

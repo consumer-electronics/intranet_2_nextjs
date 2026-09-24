@@ -30,7 +30,6 @@ export default function DesprendiblesView() {
         downloadFile,
     } = useDesprendibles();
 
-    const handleSelect = (file) => (isMobile ? downloadFile(file) : openPreview(file));
 
     return (
         <Box>
@@ -53,16 +52,23 @@ export default function DesprendiblesView() {
             ) : (
                 <Stack spacing={1.5}>
                     {files.map((file, index) => (
-                        <PayslipCard key={file.doc} file={file} isLatest={index === 0} onSelect={() => handleSelect(file)} />
+                        <PayslipCard
+                            key={file.doc}
+                            file={file}
+                            isLatest={index === 0}
+                            onSelect={() => openPreview(file)}
+                            onDownload={() => downloadFile(file)}
+                        />
                     ))}
                 </Stack>
             )}
 
             <PayslipPreviewModal
-                open={Boolean(selectedFile) && !isMobile}
+                open={Boolean(selectedFile)}
                 file={selectedFile}
                 previewUrl={previewUrl}
                 loading={previewLoading}
+                isMobile={isMobile}
                 onClose={closePreview}
                 onDownload={() => selectedFile && downloadFile(selectedFile)}
             />

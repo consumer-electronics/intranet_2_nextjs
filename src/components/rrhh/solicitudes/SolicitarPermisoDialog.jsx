@@ -11,7 +11,6 @@ import DialogActions from '@mui/material/DialogActions';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -19,7 +18,8 @@ import Radio from '@mui/material/Radio';
 import FormHelperText from '@mui/material/FormHelperText';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -65,6 +65,23 @@ function formatHoraBackend(date) {
     return dayjs(date).format('hh:mm A');
 }
 
+// Caja con borde reutilizable para los bloques del formulario
+const cardSx = {
+    p: 2,
+    border: 1,
+    borderColor: 'divider',
+    borderRadius: 2,
+    minWidth: 0,
+};
+
+// Grid CSS: minmax(0, 1fr) evita que el contenido ensanche la columna y la desalinee
+const gridSx = (columns) => ({
+    display: 'grid',
+    gap: 2,
+    gridTemplateColumns: columns,
+    width: '100%',
+});
+
 /**
  * Diálogo "Solicitar Permiso".
  *
@@ -82,6 +99,9 @@ export default function SolicitarPermisoDialog({
     onSubmit,
     submitting = false,
 }) {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
     const [motivo, setMotivo] = useState('');
     const [reposicion, setReposicion] = useState('');
     const [fechaInicio, setFechaInicio] = useState(null);
@@ -92,10 +112,19 @@ export default function SolicitarPermisoDialog({
     const [archivo, setArchivo] = useState(null);
     const [errores, setErrores] = useState({});
 
-    const nombre = usuario?.nombre || '';
+    const nombre = usuario?.nombre || usuario?.name || usuario?.fun_nombre_completo || [usuario?.fun_nombre, usuario?.fun_nombre2, usuario?.fun_apellido, usuario?.fun_apellido2].filter(Boolean).join(' ') || usuario?.nombres || usuario?.Nombre || '';
     const cedula =
-        usuario?.cedula || usuario?.dni || usuario?.fun_cedula || '';
-    const area = usuario?.area || usuario?.fun_area || '';
+        usuario?.cedula || usuario?.dni || usuario?.fun_cedula || usuario?.documento || usuario?.Cedula || '';
+
+    const formatArea = (str) => {
+        if (!str) return '';
+        return str
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    };
+
+    const area = formatArea(usuario?.area || usuario?.dep_tag || usuario?.fun_area || usuario?.car_area || usuario?.dep_nombre || usuario?.dependencia || usuario?.departamento || usuario?.area_nombre || usuario?.nombre_area || usuario?.cargo || usuario?.car_nombre || '');
 
     const reposicionOpciones = useMemo(
         () => REPOSICION_POR_MOTIVO[motivo] || [],
@@ -193,6 +222,7 @@ export default function SolicitarPermisoDialog({
         formData.set('formFinalPermiso', formatFechaBackend(fechaFin));
         formData.set('formFinHora', formatHoraBackend(horaFin));
         formData.set('observaciones', observaciones.trim());
+        // Se sigue enviando al backend aunque ya no se muestre el campo
         formData.set('fecha', dayjs().format('DD/MM/YYYY HH:mm:ss'));
         if (nombre) formData.set('nombre', nombre);
         if (cedula) formData.set('cedula', cedula);
@@ -202,19 +232,27 @@ export default function SolicitarPermisoDialog({
         onSubmit(formData);
     };
 
+    const pickerSlotProps = (key) => ({
+        textField: {
+            size: 'small',
+            fullWidth: true,
+            error: Boolean(errores[key]),
+            helperText: errores[key] || '',
+        },
+    });
+
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
             <Dialog
                 open={open}
                 onClose={handleClose}
                 fullWidth
+                fullScreen={isMobile}
                 maxWidth="md"
-                scroll="body"
+                scroll="paper"
             >
-                <DialogTitle sx={{ pr: 6 }}>
-                    <Typography variant="h6" fontWeight={700}>
-                        Solicitar Permiso
-                    </Typography>
+                <DialogTitle sx={{ pr: 6, fontWeight: 700, fontSize: '1.25rem' }}>
+                    Solicitar Permiso
                     <IconButton
                         aria-label="Cerrar"
                         onClick={handleClose}
@@ -225,228 +263,188 @@ export default function SolicitarPermisoDialog({
                     </IconButton>
                 </DialogTitle>
 
-                <DialogContent dividers>
-                    <Grid container spacing={2}>
-                        {/* Datos del usuario */}
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Nombre"
-                                value={nombre}
-                                fullWidth
-                                size="small"
-                                disabled
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Cédula"
-                                value={cedula}
-                                fullWidth
-                                size="small"
-                                disabled
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Fecha"
-                                value={dayjs().format('DD/MM/YYYY HH:mm:ss')}
-                                fullWidth
-                                size="small"
-                                disabled
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Área"
-                                value={area}
-                                fullWidth
-                                size="small"
-                                disabled
-                            />
-                        </Grid>
+                <DialogContent
+                    dividers
+                    sx={{
+                        overflowX: 'hidden',
+                        px: { xs: 2, sm: 3 },
+                        py: 2,
+                    }}
+                >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+                        {/* Datos del usuario (informativos): 1 columna en mobile, 3 en desktop */}
+                        <Box
+                            sx={gridSx({
+                                xs: 'minmax(0, 1fr)',
+                                md: 'repeat(3, minmax(0, 1fr))',
+                            })}
+                        >
+                            <TextField label="Nombre" value={nombre} fullWidth size="small" disabled />
+                            <TextField label="Cédula" value={cedula} fullWidth size="small" disabled />
+                            <TextField label="Área" value={area} fullWidth size="small" disabled />
+                        </Box>
 
-                        <Grid item xs={12}>
-                            <Divider />
-                        </Grid>
-
-                        {/* Motivo */}
-                        <Grid item xs={12}>
-                            <Typography variant="subtitle2" gutterBottom>
-                                Motivo del permiso <Box component="span" color="error.main">*</Box>
-                            </Typography>
-                            <RadioGroup
-                                row
-                                value={motivo}
-                                onChange={handleMotivoChange}
-                            >
-                                {MOTIVOS.map((m) => (
-                                    <FormControlLabel
-                                        key={m.value}
-                                        value={m.value}
-                                        control={<Radio size="small" />}
-                                        label={m.label}
-                                    />
-                                ))}
-                            </RadioGroup>
-                            {errores.motivo && (
-                                <FormHelperText error>{errores.motivo}</FormHelperText>
-                            )}
-                        </Grid>
-
-                        {/* Reposición (solo motivo 3 o 4) */}
-                        {reposicionOpciones.length > 0 && (
-                            <Grid item xs={12}>
+                        {/* Motivo / Reposición */}
+                        <Box
+                            sx={gridSx({
+                                xs: 'minmax(0, 1fr)',
+                                md:
+                                    reposicionOpciones.length > 0
+                                        ? 'repeat(2, minmax(0, 1fr))'
+                                        : 'minmax(0, 1fr)',
+                            })}
+                        >
+                            <Box sx={cardSx}>
                                 <Typography variant="subtitle2" gutterBottom>
-                                    Reposición <Box component="span" color="error.main">*</Box>
+                                    Motivo del permiso <Box component="span" color="error.main">*</Box>
                                 </Typography>
-                                <RadioGroup
-                                    row
-                                    value={reposicion}
-                                    onChange={(e) => {
-                                        setReposicion(e.target.value);
-                                        setErrores((prev) => ({ ...prev, reposicion: undefined }));
-                                    }}
-                                >
-                                    {reposicionOpciones.map((op) => (
+                                <RadioGroup row value={motivo} onChange={handleMotivoChange}>
+                                    {MOTIVOS.map((m) => (
                                         <FormControlLabel
-                                            key={op.value}
-                                            value={op.value}
+                                            key={m.value}
+                                            value={m.value}
                                             control={<Radio size="small" />}
-                                            label={op.label}
+                                            label={m.label}
                                         />
                                     ))}
                                 </RadioGroup>
-                                {errores.reposicion && (
-                                    <FormHelperText error>{errores.reposicion}</FormHelperText>
+                                {errores.motivo && (
+                                    <FormHelperText error>{errores.motivo}</FormHelperText>
                                 )}
-                            </Grid>
-                        )}
+                            </Box>
 
-                        <Grid item xs={12}>
-                            <Divider />
-                        </Grid>
+                            {reposicionOpciones.length > 0 && (
+                                <Box sx={cardSx}>
+                                    <Typography variant="subtitle2" gutterBottom>
+                                        Reposición <Box component="span" color="error.main">*</Box>
+                                    </Typography>
+                                    <RadioGroup
+                                        row
+                                        value={reposicion}
+                                        onChange={(e) => {
+                                            setReposicion(e.target.value);
+                                            setErrores((prev) => ({ ...prev, reposicion: undefined }));
+                                        }}
+                                    >
+                                        {reposicionOpciones.map((op) => (
+                                            <FormControlLabel
+                                                key={op.value}
+                                                value={op.value}
+                                                control={<Radio size="small" />}
+                                                label={op.label}
+                                            />
+                                        ))}
+                                    </RadioGroup>
+                                    {errores.reposicion && (
+                                        <FormHelperText error>{errores.reposicion}</FormHelperText>
+                                    )}
+                                </Box>
+                            )}
+                        </Box>
 
-                        {/* Fechas y horas */}
-                        <Grid item xs={12} sm={6} md={3}>
-                            <DatePicker
-                                label="Fecha inicio permiso *"
-                                value={fechaInicio}
-                                onChange={(v) => {
-                                    setFechaInicio(v);
-                                    setErrores((prev) => ({ ...prev, fechaInicio: undefined }));
-                                }}
-                                format="DD/MM/YYYY"
-                                slotProps={{
-                                    textField: {
-                                        size: 'small',
-                                        fullWidth: true,
-                                        error: Boolean(errores.fechaInicio),
-                                        helperText: errores.fechaInicio || '',
-                                    },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <TimePicker
-                                label="Hora de salida *"
-                                value={horaInicio}
-                                onChange={(v) => {
-                                    setHoraInicio(v);
-                                    setErrores((prev) => ({ ...prev, horaInicio: undefined }));
-                                }}
-                                ampm
-                                format="hh:mm A"
-                                slotProps={{
-                                    textField: {
-                                        size: 'small',
-                                        fullWidth: true,
-                                        error: Boolean(errores.horaInicio),
-                                        helperText: errores.horaInicio || '',
-                                    },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <DatePicker
-                                label="Fecha fin permiso *"
-                                value={fechaFin}
-                                onChange={(v) => {
-                                    setFechaFin(v);
-                                    setErrores((prev) => ({ ...prev, fechaFin: undefined }));
-                                }}
-                                format="DD/MM/YYYY"
-                                slotProps={{
-                                    textField: {
-                                        size: 'small',
-                                        fullWidth: true,
-                                        error: Boolean(errores.fechaFin),
-                                        helperText: errores.fechaFin || '',
-                                    },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <TimePicker
-                                label="Hora fin permiso *"
-                                value={horaFin}
-                                onChange={(v) => {
-                                    setHoraFin(v);
-                                    setErrores((prev) => ({ ...prev, horaFin: undefined }));
-                                }}
-                                ampm
-                                format="hh:mm A"
-                                slotProps={{
-                                    textField: {
-                                        size: 'small',
-                                        fullWidth: true,
-                                        error: Boolean(errores.horaFin),
-                                        helperText: errores.horaFin || '',
-                                    },
-                                }}
-                            />
-                        </Grid>
+                        {/* Inicio / Fin del permiso */}
+                        <Box
+                            sx={gridSx({
+                                xs: 'minmax(0, 1fr)',
+                                md: 'repeat(2, minmax(0, 1fr))',
+                            })}
+                        >
+                            <Box sx={cardSx}>
+                                <Typography variant="subtitle2" gutterBottom>
+                                    Inicio del Permiso
+                                </Typography>
+                                <Box sx={gridSx({ xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' })}>
+                                    <DatePicker
+                                        label="Fecha inicio *"
+                                        value={fechaInicio}
+                                        onChange={(v) => {
+                                            setFechaInicio(v);
+                                            setErrores((prev) => ({ ...prev, fechaInicio: undefined }));
+                                        }}
+                                        format="DD/MM/YYYY"
+                                        slotProps={pickerSlotProps('fechaInicio')}
+                                    />
+                                    <TimePicker
+                                        label="Hora de salida *"
+                                        value={horaInicio}
+                                        onChange={(v) => {
+                                            setHoraInicio(v);
+                                            setErrores((prev) => ({ ...prev, horaInicio: undefined }));
+                                        }}
+                                        ampm
+                                        format="hh:mm A"
+                                        slotProps={pickerSlotProps('horaInicio')}
+                                    />
+                                </Box>
+                            </Box>
 
-                        <Grid item xs={12}>
-                            <Divider />
-                        </Grid>
+                            <Box sx={cardSx}>
+                                <Typography variant="subtitle2" gutterBottom>
+                                    Fin del Permiso
+                                </Typography>
+                                <Box sx={gridSx({ xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' })}>
+                                    <DatePicker
+                                        label="Fecha fin *"
+                                        value={fechaFin}
+                                        onChange={(v) => {
+                                            setFechaFin(v);
+                                            setErrores((prev) => ({ ...prev, fechaFin: undefined }));
+                                        }}
+                                        format="DD/MM/YYYY"
+                                        slotProps={pickerSlotProps('fechaFin')}
+                                    />
+                                    <TimePicker
+                                        label="Hora fin permiso *"
+                                        value={horaFin}
+                                        onChange={(v) => {
+                                            setHoraFin(v);
+                                            setErrores((prev) => ({ ...prev, horaFin: undefined }));
+                                        }}
+                                        ampm
+                                        format="hh:mm A"
+                                        slotProps={pickerSlotProps('horaFin')}
+                                    />
+                                </Box>
+                            </Box>
+                        </Box>
 
-                        {/* Archivo */}
-                        <Grid item xs={12}>
-                            <TextField
-                                type="file"
-                                inputProps={{ accept: '.pdf,.jpg,.jpeg,.png' }}
-                                onChange={handleArchivoChange}
-                                fullWidth
-                                size="small"
-                                error={Boolean(errores.archivo)}
-                                helperText={
-                                    errores.archivo ||
-                                    'El tamaño máximo del archivo debe ser 5MB (pdf, jpg, jpeg, png)'
-                                }
-                            />
-                        </Grid>
+                        {/* Archivo (fila propia, ancho completo) */}
+                        <TextField
+                            type="file"
+                            inputProps={{ accept: '.pdf,.jpg,.jpeg,.png' }}
+                            onChange={handleArchivoChange}
+                            fullWidth
+                            size="small"
+                            error={Boolean(errores.archivo)}
+                            helperText={
+                                errores.archivo ||
+                                'El tamaño máximo del archivo debe ser 5MB (pdf, jpg, jpeg, png)'
+                            }
+                        />
 
-                        {/* Observaciones */}
-                        <Grid item xs={12}>
-                            <TextField
-                                label="Observaciones *"
-                                value={observaciones}
-                                onChange={(e) => {
-                                    setObservaciones(e.target.value);
-                                    setErrores((prev) => ({ ...prev, observaciones: undefined }));
-                                }}
-                                multiline
-                                rows={3}
-                                fullWidth
-                                size="small"
-                                error={Boolean(errores.observaciones)}
-                                helperText={errores.observaciones || ''}
-                            />
-                        </Grid>
-                    </Grid>
+                        {/* Observaciones (debajo del archivo, ancho completo, bordes redondeados) */}
+                        <TextField
+                            label="Observaciones *"
+                            value={observaciones}
+                            onChange={(e) => {
+                                setObservaciones(e.target.value);
+                                setErrores((prev) => ({ ...prev, observaciones: undefined }));
+                            }}
+                            multiline
+                            minRows={5}
+                            fullWidth
+                            error={Boolean(errores.observaciones)}
+                            helperText={errores.observaciones || ''}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                },
+                            }}
+                        />
+                    </Box>
                 </DialogContent>
 
-                <DialogActions sx={{ px: 3, py: 2 }}>
+                <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
                     <Button onClick={handleClose} disabled={submitting}>
                         Cancelar
                     </Button>

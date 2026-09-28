@@ -17,12 +17,31 @@ import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 const MAX_DIAS = 30;
+
+// Caja con borde reutilizable para los bloques del formulario
+const cardSx = {
+    p: 2,
+    border: 1,
+    borderColor: 'divider',
+    borderRadius: 2,
+    minWidth: 0,
+};
+
+// Grid CSS: minmax(0, 1fr) evita que el contenido ensanche la columna y la desalinee
+const gridSx = (columns) => ({
+    display: 'grid',
+    gap: 2,
+    gridTemplateColumns: columns,
+    width: '100%',
+});
 
 /**
  * Diálogo "Solicitar Vacaciones".
@@ -48,16 +67,30 @@ export default function SolicitarVacacionesDialog({
     onSubmit,
     submitting = false,
 }) {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
     const [fechaInicio, setFechaInicio] = useState(null);
     const [dias, setDias] = useState('');
     const [observaciones, setObservaciones] = useState('');
     const [errores, setErrores] = useState({});
 
-    const nombre = usuario?.nombre || usuario?.fun_nombre_completo || '';
+    const nombre = usuario?.nombre || usuario?.name || usuario?.fun_nombre_completo || [usuario?.fun_nombre, usuario?.fun_nombre2, usuario?.fun_apellido, usuario?.fun_apellido2].filter(Boolean).join(' ') || usuario?.nombres || usuario?.Nombre || '';
     const cedula =
-        usuario?.cedula || usuario?.dni || usuario?.fun_cedula || '';
-    const area = usuario?.area || usuario?.fun_area || '';
+        usuario?.cedula || usuario?.dni || usuario?.fun_cedula || usuario?.documento || usuario?.Cedula || '';
+
+    const formatArea = (str) => {
+        if (!str) return '';
+        return str
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    };
+
+    const area = formatArea(usuario?.area || usuario?.dep_tag || usuario?.fun_area || usuario?.car_area || usuario?.dep_nombre || usuario?.dependencia || usuario?.departamento || usuario?.area_nombre || usuario?.nombre_area || usuario?.cargo || usuario?.car_nombre || '');
     const rol = usuario?.car_nombre || usuario?.car_tag || '';
+
+    const nombreJefe = usuario?.jefe || '';
 
     const resetForm = () => {
         setFechaInicio(null);
@@ -119,19 +152,28 @@ export default function SolicitarVacacionesDialog({
         onSubmit(formData);
     };
 
+    const pickerSlotProps = (key) => ({
+        textField: {
+            size: 'small',
+            fullWidth: true,
+            required: true,
+            error: Boolean(errores[key]),
+            helperText: errores[key] || '',
+        },
+    });
+
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
             <Dialog
                 open={open}
                 onClose={handleClose}
                 fullWidth
+                fullScreen={isMobile}
                 maxWidth="md"
-                scroll="body"
+                scroll="paper"
             >
-                <DialogTitle sx={{ pr: 6 }}>
-                    <Typography variant="h6" fontWeight={700}>
-                        Solicitar Vacaciones
-                    </Typography>
+                <DialogTitle sx={{ pr: 6, fontWeight: 700, fontSize: '1.25rem' }}>
+                    Solicitar Vacaciones
                     <IconButton
                         aria-label="Cerrar"
                         onClick={handleClose}
@@ -142,133 +184,114 @@ export default function SolicitarVacacionesDialog({
                     </IconButton>
                 </DialogTitle>
 
-                <DialogContent dividers>
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                        <Typography variant="body2">
-                            <strong>Importante:</strong> Las vacaciones están sujetas a
-                            aprobación por parte de su jefe de área. Esta es únicamente una{' '}
-                            <strong>solicitud</strong>, no una aprobación automática.
-                        </Typography>
-                    </Alert>
+                <DialogContent
+                    dividers
+                    sx={{
+                        overflowX: 'hidden',
+                        px: { xs: 2, sm: 3 },
+                        py: 2,
+                    }}
+                >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+                        <Alert severity="info" sx={{ mb: 0 }}>
+                            <Typography variant="body2">
+                                <strong>Importante:</strong> Las vacaciones están sujetas a
+                                aprobación por parte de su jefe de área (<strong>{nombreJefe}</strong>). Esta es únicamente una{' '}
+                                <strong>solicitud</strong>, no una aprobación automática.
+                            </Typography>
+                        </Alert>
 
-                    <Grid container spacing={2}>
-                        {/* Datos del usuario */}
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Nombre"
-                                value={nombre}
-                                fullWidth
-                                size="small"
-                                disabled
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Cédula"
-                                value={cedula}
-                                fullWidth
-                                size="small"
-                                disabled
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Fecha"
-                                value={dayjs().format('DD/MM/YYYY HH:mm:ss')}
-                                fullWidth
-                                size="small"
-                                disabled
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Área"
-                                value={area}
-                                fullWidth
-                                size="small"
-                                disabled
-                            />
-                        </Grid>
+                        {/* Datos del usuario (informativos) */}
+                        <Box
+                            sx={gridSx({
+                                xs: 'minmax(0, 1fr)',
+                                md: 'repeat(3, minmax(0, 1fr))',
+                            })}
+                        >
+                            <TextField label="Nombre" value={nombre} fullWidth size="small" disabled />
+                            <TextField label="Cédula" value={cedula} fullWidth size="small" disabled />
+                            <TextField label="Área" value={area} fullWidth size="small" disabled />
+                        </Box>
 
-                        <Grid item xs={12}>
-                            <Divider />
-                        </Grid>
-
-                        {/* Fecha de inicio */}
-                        <Grid item xs={12} sm={6}>
-                            <DatePicker
-                                label="Fecha de inicio vacaciones"
-                                value={fechaInicio}
-                                onChange={(value) => {
-                                    setFechaInicio(value);
-                                    setErrores((prev) => ({
-                                        ...prev,
-                                        fechaInicio: undefined,
-                                    }));
-                                }}
-                                minDate={dayjs().startOf('day')}
-                                slotProps={{
-                                    textField: {
-                                        fullWidth: true,
-                                        size: 'small',
-                                        required: true,
-                                        error: Boolean(errores.fechaInicio),
-                                        helperText: errores.fechaInicio || '',
-                                    },
-                                }}
-                            />
-                        </Grid>
-
-                        {/* Días */}
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Días de vacaciones"
-                                type="number"
-                                value={dias}
-                                onChange={(event) => {
-                                    setDias(event.target.value);
-                                    setErrores((prev) => ({
-                                        ...prev,
-                                        dias: undefined,
-                                    }));
-                                }}
-                                fullWidth
-                                size="small"
-                                required
-                                inputProps={{ min: 1, max: MAX_DIAS }}
-                                error={Boolean(errores.dias)}
-                                helperText={
-                                    errores.dias ||
-                                    `El límite de días son ${MAX_DIAS}`
-                                }
-                            />
-                        </Grid>
+                        {/* Fecha de inicio y días */}
+                        <Box
+                            sx={gridSx({
+                                xs: 'minmax(0, 1fr)',
+                                md: 'minmax(0, 1fr)',
+                            })}
+                        >
+                            <Box sx={cardSx}>
+                                <Typography variant="subtitle2" gutterBottom>
+                                    Detalles de Vacaciones
+                                </Typography>
+                                <Box sx={gridSx({ xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' })}>
+                                    <DatePicker
+                                        label="Fecha de inicio"
+                                        value={fechaInicio}
+                                        onChange={(value) => {
+                                            setFechaInicio(value);
+                                            setErrores((prev) => ({
+                                                ...prev,
+                                                fechaInicio: undefined,
+                                            }));
+                                        }}
+                                        minDate={dayjs().startOf('day')}
+                                        format="DD/MM/YYYY"
+                                        slotProps={pickerSlotProps('fechaInicio')}
+                                    />
+                                    <TextField
+                                        label="Días de vacaciones"
+                                        type="number"
+                                        value={dias}
+                                        onChange={(event) => {
+                                            setDias(event.target.value);
+                                            setErrores((prev) => ({
+                                                ...prev,
+                                                dias: undefined,
+                                            }));
+                                        }}
+                                        fullWidth
+                                        size="small"
+                                        required
+                                        inputProps={{ min: 1, max: MAX_DIAS }}
+                                        error={Boolean(errores.dias)}
+                                        helperText={
+                                            errores.dias ||
+                                            `El límite de días son ${MAX_DIAS}`
+                                        }
+                                    />
+                                </Box>
+                            </Box>
+                        </Box>
 
                         {/* Observaciones */}
-                        <Grid item xs={12}>
-                            <TextField
-                                label="Observaciones"
-                                value={observaciones}
-                                onChange={(event) => {
-                                    setObservaciones(event.target.value);
-                                    setErrores((prev) => ({
-                                        ...prev,
-                                        observaciones: undefined,
-                                    }));
-                                }}
-                                fullWidth
-                                size="small"
-                                multiline
-                                minRows={3}
-                                required
-                                error={Boolean(errores.observaciones)}
-                                helperText={errores.observaciones || ''}
-                            />
-                        </Grid>
-                    </Grid>
+                        <TextField
+                            label="Observaciones"
+                            value={observaciones}
+                            onChange={(event) => {
+                                setObservaciones(event.target.value);
+                                setErrores((prev) => ({
+                                    ...prev,
+                                    observaciones: undefined,
+                                }));
+                            }}
+                            fullWidth
+                            size="small"
+                            multiline
+                            minRows={5}
+                            required
+                            error={Boolean(errores.observaciones)}
+                            helperText={errores.observaciones || ''}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                },
+                            }}
+                        />
+                    </Box>
                 </DialogContent>
 
-                <DialogActions sx={{ px: 3, py: 2 }}>
+                <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
                     <Button onClick={handleClose} disabled={submitting}>
                         Cancelar
                     </Button>

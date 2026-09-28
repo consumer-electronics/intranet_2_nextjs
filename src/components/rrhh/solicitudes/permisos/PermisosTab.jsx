@@ -180,7 +180,7 @@ export default function PermisosTab({ funcionarioId, user }) {
                     variant="contained"
                     startIcon={<AddIcon />}
                     onClick={() => setSolicitarOpen(true)}
-                    sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}
+                    sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, mt: { xs: 2, sm: 0 } }}
                 >
                     Solicitar Permiso
                 </Button>

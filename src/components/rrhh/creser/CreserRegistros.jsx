@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
@@ -21,8 +20,8 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
-import Grid from '@mui/material/Grid';
-import Stack from '@mui/material/Stack';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import TablePagination from '@mui/material/TablePagination';
 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SchoolIcon from '@mui/icons-material/School';
@@ -31,8 +30,12 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreser } from '@/hooks/rrhh/useCreser';
 import { getAreasCreser, getProyectosFormacion } from '@/api/rrhh/creser';
-import { CreserPieChart, CreserBarChart } from './CreserCharts';
+import { CreserChartsPanel } from './CreserCharts';
 import CreserPeriodosModal from './CreserPeriodosModal';
+
+/** Calcula porcentaje seguro (evita división por cero) */
+const pct = (parcial, total) =>
+    total > 0 ? ((parcial * 100) / total).toFixed(2) : 0;
 
 /**
  * CreserRegistros
@@ -40,6 +43,8 @@ import CreserPeriodosModal from './CreserPeriodosModal';
  * Vista de reportes CRESER — equivalente a `registros.php`.
  * Permite seleccionar un periodo y ver:
  *  - Tab "Registro": tabla de áreas (Área / Usuarios / Completados) + gráficas
+ *      · Arriba: 2 ruedas (General y Líderes)
+ *      · Abajo: 2 barras (Desempeño y Líderes)
  *  - Tab "Proyectos": tabla con Área / Usuario / Formación / Proyecto
  *
  * Botón "Periodos" abre el modal de gestión.
@@ -127,43 +132,117 @@ export default function CreserRegistros() {
     // ── Datos para gráficas ─────────────────────────────────────────────────
     const totalUsuarios = areas
         ? Array.from(
-              { length: areas.cantidad_registros ?? 0 },
-              (_, i) => areas[i]
-          )
-              .filter(Boolean)
-              .reduce((acc, a) => acc + (a.usuarios_total ?? 0), 0)
+            { length: areas.cantidad_registros ?? 0 },
+            (_, i) => areas[i]
+        )
+            .filter(Boolean)
+            .reduce((acc, a) => acc + (a.usuarios_total ?? 0), 0)
         : 0;
 
     const pieGeneralData = areas
         ? [
-              { name: 'Pendientes', value: totalUsuarios - (areas.cont_general ?? 0) },
-              { name: 'Completados', value: areas.cont_general ?? 0 },
-          ]
+            { name: 'Pendientes', value: totalUsuarios - (areas.cont_general ?? 0) },
+            { name: 'Completados', value: areas.cont_general ?? 0 },
+        ]
         : [];
 
     const pieLideresData = areas?.cont_lideres_total > 0
         ? [
-              { name: 'Pendientes', value: (areas.cont_lideres_total ?? 0) - (areas.cont_lideres ?? 0) },
-              { name: 'Completados', value: areas.cont_lideres ?? 0 },
-          ]
+            { name: 'Pendientes', value: (areas.cont_lideres_total ?? 0) - (areas.cont_lideres ?? 0) },
+            { name: 'Completados', value: areas.cont_lideres ?? 0 },
+        ]
         : [];
 
     const barGeneralData = areas?.cont_general > 0
         ? {
-              categorias: ['Orientación al Servicio', 'Trabajo en Equipo', 'Efectividad'],
-              valores: [
-                  areas.orientacion_al_servicio_total > 0
-                      ? ((areas.orientacion_al_servicio * 100) / areas.orientacion_al_servicio_total).toFixed(2)
-                      : 0,
-                  areas.trabajo_en_equipo_total > 0
-                      ? ((areas.trabajo_en_equipo * 100) / areas.trabajo_en_equipo_total).toFixed(2)
-                      : 0,
-                  areas.efectividad_total > 0
-                      ? ((areas.efectividad * 100) / areas.efectividad_total).toFixed(2)
-                      : 0,
-              ],
-          }
+            categorias: ['Orientación al Servicio', 'Trabajo en Equipo', 'Efectividad'],
+            valores: [
+                pct(areas.orientacion_al_servicio, areas.orientacion_al_servicio_total),
+                pct(areas.trabajo_en_equipo, areas.trabajo_en_equipo_total),
+                pct(areas.efectividad, areas.efectividad_total),
+            ],
+        }
         : null;
+
+    // TODO: barra de Líderes. Ajusta las competencias y los nombres de campo
+    // según lo que devuelve tu API. Mientras sea null, no se muestra.
+    // Ejemplo de estructura:
+    // const barLideresData = areas?.cont_lideres > 0
+    //     ? {
+    //           categorias: ['Competencia 1', 'Competencia 2'],
+    //           valores: [
+    //               pct(areas.campo_lider_1, areas.campo_lider_1_total),
+    //               pct(areas.campo_lider_2, areas.campo_lider_2_total),
+    //           ],
+    //       }
+    //     : null;
+    const barLideresData = null;
+
+    // ── Armado del panel de gráficas (2 ruedas arriba, 2 barras abajo) ──────
+    const hayLideres =
+        pieLideresData.length > 0 &&
+        pieLideresData[0].value + pieLideresData[1].value > 0;
+
+    const pies = [
+        {
+            titulo: 'General',
+            subtitulo: `Personas ${totalUsuarios}`,
+            datos: pieGeneralData,
+        },
+        ...(hayLideres
+            ? [
+                {
+                    titulo: 'Líderes',
+                    subtitulo: `Personas ${areas?.cont_lideres_total ?? 0}`,
+                    datos: pieLideresData,
+                },
+            ]
+            : []),
+    ];
+
+    const bars = [
+        ...(barGeneralData
+            ? [
+                {
+                    titulo: 'Desempeño',
+                    subtitulo: `Personas ${areas?.cont_general ?? 0}`,
+                    categorias: barGeneralData.categorias,
+                    valores: barGeneralData.valores,
+                },
+            ]
+            : []),
+        ...(barLideresData
+            ? [
+                {
+                    titulo: 'Desempeño Líderes',
+                    subtitulo: `Personas ${areas?.cont_lideres ?? 0}`,
+                    categorias: barLideresData.categorias,
+                    valores: barLideresData.valores,
+                },
+            ]
+            : []),
+    ];
+
+    // ── Pagination and Sorting ──────────────────────────────────────────────
+    const [order, setOrder] = useState('asc');
+    const [orderBy, setOrderBy] = useState('dep_tag');
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+
+    const handleRequestSort = (property) => {
+        const isAsc = orderBy === property && order === 'asc';
+        setOrder(isAsc ? 'desc' : 'asc');
+        setOrderBy(property);
+    };
+
+    const handleChangePage = (event, newPage) => {
+        setPage(newPage);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
 
     // ── Loading ─────────────────────────────────────────────────────────────
     if (authLoading || !user) {
@@ -174,9 +253,38 @@ export default function CreserRegistros() {
         );
     }
 
-    const areasArray = areas
-        ? Array.from({ length: areas.cantidad_registros ?? 0 }, (_, i) => areas[i]).filter(Boolean)
+    const filteredAreas = areas
+        ? Array.from({ length: areas.cantidad_registros ?? 0 }, (_, i) => areas[i])
+            .filter(Boolean)
+            .filter((a) => a.usuarios_total > 0)
         : [];
+
+    const sortedAreas = [...filteredAreas].sort((a, b) => {
+        let valA = a[orderBy];
+        let valB = b[orderBy];
+
+        if (orderBy === 'dep_tag') {
+            valA = valA ? String(valA).toLowerCase() : '';
+            valB = valB ? String(valB).toLowerCase() : '';
+            if (valA < valB) return order === 'asc' ? -1 : 1;
+            if (valA > valB) return order === 'asc' ? 1 : -1;
+            return 0;
+        }
+
+        valA = Number(valA) || 0;
+        valB = Number(valB) || 0;
+        if (valA < valB) return order === 'asc' ? -1 : 1;
+        if (valA > valB) return order === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const paginatedAreas = sortedAreas.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+    const headCellSx = { color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' };
+    const sortLabelSx = {
+        color: 'inherit !important',
+        '& .MuiTableSortLabel-icon': { color: 'inherit !important' },
+    };
 
     return (
         <>
@@ -195,7 +303,7 @@ export default function CreserRegistros() {
                             gap: 2,
                         }}
                     >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
                             <Button
                                 id="creser-registros-back"
                                 startIcon={<ArrowBackIcon />}
@@ -205,7 +313,7 @@ export default function CreserRegistros() {
                             >
                                 Volver a CRESER
                             </Button>
-                            <FormControl size="small" sx={{ minWidth: 240 }}>
+                            <FormControl size="small" sx={{ minWidth: { xs: 200, sm: 240 } }}>
                                 <InputLabel id="creser-periodo-label">Periodo</InputLabel>
                                 <Select
                                     labelId="creser-periodo-label"
@@ -240,8 +348,10 @@ export default function CreserRegistros() {
                     <Tabs
                         value={tab}
                         onChange={(_, v) => setTab(v)}
+                        variant="scrollable"
+                        scrollButtons="auto"
                         sx={{
-                            px: 3,
+                            px: { xs: 1, sm: 3 },
                             borderBottom: 1,
                             borderColor: 'divider',
                             '& .MuiTab-root': { textTransform: 'none', fontWeight: 500 },
@@ -252,12 +362,19 @@ export default function CreserRegistros() {
                     </Tabs>
 
                     {/* ── Tab Registro ──────────────────────────────────────── */}
-                    <Box role="tabpanel" sx={{ display: tab === 0 ? 'block' : 'none', p: 3 }}>
+                    <Box role="tabpanel" sx={{ display: tab === 0 ? 'block' : 'none', p: { xs: 1.5, sm: 3 } }}>
                         {areasError && <Alert severity="error" sx={{ mb: 2 }}>{areasError}</Alert>}
 
-                        <Grid container spacing={3}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                flexDirection: { xs: 'column', lg: 'row' },
+                                alignItems: { xs: 'stretch', lg: 'flex-start' },
+                                gap: 3,
+                            }}
+                        >
                             {/* Tabla de áreas */}
-                            <Grid item xs={12} md={4}>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
                                 {areasLoading ? (
                                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
                                         <CircularProgress size={28} />
@@ -267,13 +384,40 @@ export default function CreserRegistros() {
                                         <Table size="small" aria-label="Tabla de áreas CRESER">
                                             <TableHead>
                                                 <TableRow>
-                                                    <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Área</TableCell>
-                                                    <TableCell align="center" sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Usuarios</TableCell>
-                                                    <TableCell align="center" sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Completados</TableCell>
+                                                    <TableCell sx={headCellSx}>
+                                                        <TableSortLabel
+                                                            active={orderBy === 'dep_tag'}
+                                                            direction={orderBy === 'dep_tag' ? order : 'asc'}
+                                                            onClick={() => handleRequestSort('dep_tag')}
+                                                            sx={sortLabelSx}
+                                                        >
+                                                            Área
+                                                        </TableSortLabel>
+                                                    </TableCell>
+                                                    <TableCell align="center" sx={headCellSx}>
+                                                        <TableSortLabel
+                                                            active={orderBy === 'usuarios_total'}
+                                                            direction={orderBy === 'usuarios_total' ? order : 'asc'}
+                                                            onClick={() => handleRequestSort('usuarios_total')}
+                                                            sx={sortLabelSx}
+                                                        >
+                                                            Usuarios
+                                                        </TableSortLabel>
+                                                    </TableCell>
+                                                    <TableCell align="center" sx={headCellSx}>
+                                                        <TableSortLabel
+                                                            active={orderBy === 'usuarios_realizado'}
+                                                            direction={orderBy === 'usuarios_realizado' ? order : 'asc'}
+                                                            onClick={() => handleRequestSort('usuarios_realizado')}
+                                                            sx={sortLabelSx}
+                                                        >
+                                                            Completados
+                                                        </TableSortLabel>
+                                                    </TableCell>
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
-                                                {areasArray.filter((a) => a.usuarios_total > 0).map((area, idx) => (
+                                                {paginatedAreas.map((area, idx) => (
                                                     <TableRow
                                                         key={area.dep_id ?? idx}
                                                         hover
@@ -289,7 +433,7 @@ export default function CreserRegistros() {
                                                         <TableCell align="center" sx={{ fontSize: 11 }}>{area.usuarios_realizado}</TableCell>
                                                     </TableRow>
                                                 ))}
-                                                {areasArray.filter((a) => a.usuarios_total > 0).length === 0 && !areasLoading && (
+                                                {filteredAreas.length === 0 && !areasLoading && (
                                                     <TableRow>
                                                         <TableCell colSpan={3} align="center" sx={{ py: 3, color: 'text.secondary' }}>
                                                             No hay datos para este periodo
@@ -298,48 +442,32 @@ export default function CreserRegistros() {
                                                 )}
                                             </TableBody>
                                         </Table>
+                                        <TablePagination
+                                            rowsPerPageOptions={[5, 10, 25]}
+                                            component="div"
+                                            count={filteredAreas.length}
+                                            rowsPerPage={rowsPerPage}
+                                            page={page}
+                                            onPageChange={handleChangePage}
+                                            onRowsPerPageChange={handleChangeRowsPerPage}
+                                            labelRowsPerPage="Filas por página"
+                                            labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`}
+                                        />
                                     </TableContainer>
                                 )}
-                            </Grid>
+                            </Box>
 
-                            {/* Gráficas */}
-                            <Grid item xs={12} md={8}>
-                                {totalUsuarios > 0 && (
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={6}>
-                                            <CreserPieChart
-                                                titulo="General"
-                                                subtitulo={`Personas ${totalUsuarios}`}
-                                                datos={pieGeneralData}
-                                            />
-                                        </Grid>
-                                        {pieLideresData.length > 0 && (pieLideresData[0].value + pieLideresData[1].value) > 0 && (
-                                            <Grid item xs={6}>
-                                                <CreserPieChart
-                                                    titulo="Líderes"
-                                                    subtitulo={`Personas ${areas?.cont_lideres_total ?? 0}`}
-                                                    datos={pieLideresData}
-                                                />
-                                            </Grid>
-                                        )}
-                                        {barGeneralData && (
-                                            <Grid item xs={12}>
-                                                <CreserBarChart
-                                                    titulo="Desempeño"
-                                                    subtitulo={`Personas ${areas?.cont_general ?? 0}`}
-                                                    categorias={barGeneralData.categorias}
-                                                    valores={barGeneralData.valores}
-                                                />
-                                            </Grid>
-                                        )}
-                                    </Grid>
-                                )}
-                            </Grid>
-                        </Grid>
+                            {/* Gráficas: 2 ruedas arriba, 2 barras abajo */}
+                            {totalUsuarios > 0 && (
+                                <Box sx={{ width: { xs: '100%', lg: 460 }, flexShrink: 0 }}>
+                                    <CreserChartsPanel pies={pies} bars={bars} />
+                                </Box>
+                            )}
+                        </Box>
                     </Box>
 
                     {/* ── Tab Proyectos ──────────────────────────────────────── */}
-                    <Box role="tabpanel" sx={{ display: tab === 1 ? 'block' : 'none', p: 3 }}>
+                    <Box role="tabpanel" sx={{ display: tab === 1 ? 'block' : 'none', p: { xs: 1.5, sm: 3 } }}>
                         {proyectosError && <Alert severity="error" sx={{ mb: 2 }}>{proyectosError}</Alert>}
 
                         {proyectosLoading ? (
@@ -351,10 +479,10 @@ export default function CreserRegistros() {
                                 <Table size="small" aria-label="Tabla proyectos y formación CRESER">
                                     <TableHead>
                                         <TableRow>
-                                            <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Área</TableCell>
-                                            <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Usuarios</TableCell>
-                                            <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Formación</TableCell>
-                                            <TableCell sx={{ color: 'common.white', fontWeight: 700, bgcolor: 'primary.main' }}>Proyecto</TableCell>
+                                            <TableCell sx={headCellSx}>Área</TableCell>
+                                            <TableCell sx={headCellSx}>Usuarios</TableCell>
+                                            <TableCell sx={headCellSx}>Formación</TableCell>
+                                            <TableCell sx={headCellSx}>Proyecto</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>

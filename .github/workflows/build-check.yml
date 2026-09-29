@@ -20,7 +20,7 @@ jobs:
         node-version: '24.x'
 
     - name: Install dependencies
-      run: npm install
+      run: npm install --omit=dev --legacy-peer-deps
 
     - name: Build Next.js app
       run: npm run build

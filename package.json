@@ -31,10 +31,10 @@
     "react-dom": "19.2.8",
     "react-pdf": "^10.5.0",
     "recharts": "^3.10.1",
-    "xlsx": "^0.18.5",
-    "babel-plugin-react-compiler": "1.0.0"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9.15.0",
     "eslint-config-next": "16.3.3"
   }

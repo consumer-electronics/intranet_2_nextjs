@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { decodeHtmlEntities } from '@/lib/htmlEntities';
 
 const LEGACY_BASE_URL = process.env.URL_DYNAMICS;
 const LEGACY_ENDPOINT = `${(LEGACY_BASE_URL || '').replace(/\/+$/, '')}/pantallas/intranet/paginas/gestion_humana/solicitud_permisos.php`;
@@ -57,7 +58,8 @@ function parseOnClick(onClick) {
  */
 function cleanCell(value) {
     const cleaned = String(value ?? '').replace(/\s+/g, ' ').trim();
-    return cleaned === 'N/A' ? '' : cleaned;
+    const decoded = decodeHtmlEntities(cleaned);
+    return decoded === 'N/A' ? '' : decoded;
 }
 
 /**

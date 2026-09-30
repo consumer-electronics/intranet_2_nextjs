@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { decodeHtmlEntities } from '@/lib/htmlEntities';
 
 const DYNAMICS_BASE_URL = process.env.URL_DYNAMICS;
 
@@ -115,10 +116,26 @@ export async function GET() {
         });
     }
 
+    // Normaliza entidades HTML en campos de texto de cada usuario
+    const nameFields = [
+        'fun_nombre_completo', 'fun_nombre', 'fun_nombre2',
+        'fun_apellido', 'fun_apellido2', 'car_nombre', 'car_tag', 'dep_tag',
+    ];
+    const normalizedUsers = users.map((u) => {
+        if (!u || typeof u !== 'object') return u;
+        const result = { ...u };
+        for (const field of nameFields) {
+            if (typeof result[field] === 'string') {
+                result[field] = decodeHtmlEntities(result[field]);
+            }
+        }
+        return result;
+    });
+
     return NextResponse.json({
         success: true,
-        count: msj.cantidad_registros || users.length,
-        users,
+        count: msj.cantidad_registros || normalizedUsers.length,
+        users: normalizedUsers,
         storageUrl: almacenamientoUrl,
     });
 }

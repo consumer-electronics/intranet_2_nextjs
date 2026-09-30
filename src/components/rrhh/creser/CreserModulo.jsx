@@ -212,6 +212,36 @@ export default function CreserModulo() {
 
 // ── Parser del HTML del backend ──────────────────────────────────────────────
 /**
+ * Decodifica entidades HTML comunes en una cadena de texto.
+ * Versión cliente — solo caracteres frecuentes en nombres en español.
+ * @param {string} str
+ * @returns {string}
+ */
+function decodeHtml(str) {
+    if (!str) return str ?? '';
+    return str.replace(/&([^;]+);/g, (match, entity) => {
+        if (entity.startsWith('#x') || entity.startsWith('#X')) {
+            const code = parseInt(entity.slice(2), 16);
+            return isNaN(code) ? match : String.fromCodePoint(code);
+        }
+        if (entity.startsWith('#')) {
+            const code = parseInt(entity.slice(1), 10);
+            return isNaN(code) ? match : String.fromCodePoint(code);
+        }
+        const map = {
+            aacute: 'á', eacute: 'é', iacute: 'í', oacute: 'ó', uacute: 'ú',
+            Aacute: 'Á', Eacute: 'É', Iacute: 'Í', Oacute: 'Ó', Uacute: 'Ú',
+            ntilde: 'ñ', Ntilde: 'Ñ',
+            auml: 'ä', euml: 'ë', ouml: 'ö', uuml: 'ü',
+            amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+            agrave: 'à', egrave: 'è', ograve: 'ò',
+            ccedil: 'ç', Ccedil: 'Ç',
+        };
+        return map[entity] ?? match;
+    });
+}
+
+/**
  * Parsea el HTML de filas <tr> devuelto por `listaUsuarioCreser`.
  * El backend genera dos tipos de filas:
  *   1. Con onclick="encuesta(funId, competenciaId)" → colaborador con competencia definida
@@ -239,10 +269,10 @@ function parseTableRows(html) {
                   }
                 : null;
 
-            // Extraer texto de las <td>
+            // Extraer texto de las <td> y decodificar entidades HTML
             const tdMatches = [...inner.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)];
             const celdas = tdMatches.map((td) =>
-                td[1].replace(/<[^>]+>/g, '').trim()
+                decodeHtml(td[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim())
             );
 
             return {

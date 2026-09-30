@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { decodeHtmlEntities } from '@/lib/htmlEntities';
 
 export const runtime = 'nodejs';
 
@@ -68,12 +69,18 @@ function normalizeRows(payload) {
     for (let i = 0; i < total; i++) {
         const record = payload[i];
         if (record && typeof record === 'object') {
-            // Se asigna un id único por fila para el DataGrid. La vista vrol
-            // puede devolver el mismo fun_id varias veces (p.ej. una persona
-            // con varios roles activos); si el id se repite, el DataGrid
-            // "congela" filas al paginar. El id sintético garantiza unicidad
-            // sin alterar fun_id (que se usa para generar el certificado).
-            rows.push({ id: i, ...record });
+            // Normaliza entidades HTML en campos de nombre antes de guardar
+            const nameFields = [
+                'fun_nombre_completo', 'fun_nombre', 'fun_nombre2',
+                'fun_apellido', 'fun_apellido2', 'car_nombre',
+            ];
+            const normalized = { ...record };
+            for (const field of nameFields) {
+                if (typeof normalized[field] === 'string') {
+                    normalized[field] = decodeHtmlEntities(normalized[field]);
+                }
+            }
+            rows.push({ id: i, ...normalized });
         }
     }
 

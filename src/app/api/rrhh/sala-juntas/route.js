@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { decodeHtmlEntities } from '@/lib/htmlEntities';
 
 const BACKEND_BASE_URL = (
     process.env.URL_DYNAMICS
@@ -102,7 +103,26 @@ export async function GET(request) {
 
         try {
             const cleanText = extractJsonPayload(text);
-            return NextResponse.json(JSON.parse(cleanText));
+            const parsed = JSON.parse(cleanText);
+
+            // Normaliza entidades HTML en campos de texto de cada evento
+            const textFields = ['title', 'empleado', 'nombre', 'descripcion', 'sala'];
+            const normalizeEvent = (event) => {
+                if (!event || typeof event !== 'object') return event;
+                const normalized = { ...event };
+                for (const field of textFields) {
+                    if (typeof normalized[field] === 'string') {
+                        normalized[field] = decodeHtmlEntities(normalized[field]);
+                    }
+                }
+                return normalized;
+            };
+
+            const normalizedParsed = Array.isArray(parsed)
+                ? parsed.map(normalizeEvent)
+                : parsed;
+
+            return NextResponse.json(normalizedParsed);
         } catch {
             return NextResponse.json(
                 {

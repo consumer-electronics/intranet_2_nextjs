@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { decodeHtmlEntities } from '@/lib/htmlEntities';
 
 export const runtime = 'nodejs';
 
@@ -68,7 +69,8 @@ function parseOnClick(onClick) {
  */
 function cleanCell(value) {
     const cleaned = String(value ?? '').replace(/\s+/g, ' ').trim();
-    return cleaned === 'N/A' ? '' : cleaned;
+    const decoded = decodeHtmlEntities(cleaned);
+    return decoded === 'N/A' ? '' : decoded;
 }
 
 /**

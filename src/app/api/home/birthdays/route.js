@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { decodeHtmlEntities } from '@/lib/htmlEntities';
 
 const DYNAMICS_BASE_URL = process.env.URL_DYNAMICS;
 
@@ -93,6 +94,21 @@ export async function GET() {
                 },
                 { status: 502 }
             );
+        }
+
+        // Normaliza entidades HTML en el campo 'name' (y campos adicionales si los hay)
+        if (data && typeof data === 'object' && Array.isArray(data.data)) {
+            data.data = data.data.map((b) => {
+                if (!b || typeof b !== 'object') return b;
+                const normalized = { ...b };
+                if (typeof normalized.name === 'string') {
+                    normalized.name = decodeHtmlEntities(normalized.name);
+                }
+                if (typeof normalized.process === 'string') {
+                    normalized.process = decodeHtmlEntities(normalized.process);
+                }
+                return normalized;
+            });
         }
 
         return NextResponse.json(data);

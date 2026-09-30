@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { decodeHtmlEntities } from '@/lib/htmlEntities';
 import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
@@ -76,11 +77,26 @@ export async function GET() {
         );
     }
 
+    const rawUser = data?.data?.user || data?.user;
+
+    // Normaliza campos de nombre para eliminar entidades HTML del backend
+    // (p. ej. "Pe&ntilde;a" → "Peña") en todas las capas de la app.
+    if (rawUser && typeof rawUser === 'object') {
+        const nameFields = [
+            'name', 'nombre', 'fun_nombre_completo', 'fun_nombre',
+            'fun_nombre2', 'fun_apellido', 'fun_apellido2',
+        ];
+        for (const field of nameFields) {
+            if (typeof rawUser[field] === 'string') {
+                rawUser[field] = decodeHtmlEntities(rawUser[field]);
+            }
+        }
+    }
+
     return NextResponse.json({
-        user: data?.data?.user || data?.user,
+        user: rawUser,
         mustChangePassword: Boolean(
-            data?.data?.user?.cambio_pass ||
-            data?.user?.cambio_pass
+            rawUser?.cambio_pass
         ),
     });
 }

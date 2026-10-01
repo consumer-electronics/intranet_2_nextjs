@@ -328,7 +328,7 @@ export default function PermisosVacacionesDialog({
             scroll="body"
         >
             <DialogTitle sx={{ pr: 6 }}>
-                <Typography variant="h6" fontWeight={700} noWrap>
+                <Typography variant="h6" component="div" fontWeight={700} noWrap>
                     {nombre || 'Vacaciones del usuario'}
                 </Typography>
                 <IconButton
@@ -467,7 +467,7 @@ export default function PermisosVacacionesDialog({
                 maxWidth="sm"
             >
                 <DialogTitle sx={{ pr: 6 }}>
-                    <Typography variant="h6" fontWeight={700}>
+                    <Typography variant="h6" component="div" fontWeight={700}>
                         Observaciones
                     </Typography>
                     <IconButton

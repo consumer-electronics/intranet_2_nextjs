@@ -217,29 +217,37 @@ export default function VacacionesTab({ funcionarioId, user }) {
                     const datosResponse = await fetchDatosPermiso({ idUsu, idPermiso });
                     const datoss = datosResponse?.data || {};
 
-                    await generarPdf({
-                        nombre: user?.nombre || user?.fun_nombre_completo || '',
-                        idUsu: idUsu,
-                        dias: datoss.sp_dias,
-                        fechaInicio: datoss.sp_fecha_inicio,
-                        fechaFin: datoss.sp_fecha_fin,
-                        fechaReintegro: datoss.sp_fecha_reintegro,
-                        idPermiso: idPermiso,
-                    });
+                    try {
+                        await generarPdf({
+                            nombre: user?.nombre || user?.fun_nombre_completo || '',
+                            idUsu: idUsu,
+                            dias: datoss.sp_dias,
+                            fechaInicio: datoss.sp_fecha_inicio,
+                            fechaFin: datoss.sp_fecha_fin,
+                            fechaReintegro: datoss.sp_fecha_reintegro,
+                            idPermiso: idPermiso,
+                        });
+                    } catch (pdfError) {
+                        console.error('Error al generar PDF (no bloqueante):', pdfError);
+                    }
 
-                    await enviarCorreoCreacion({
-                        nombre: user?.nombre || user?.fun_nombre_completo || '',
-                        id: idUsu,
-                        fechaIni: datoss.sp_fecha_inicio,
-                        fechaFin: datoss.sp_fecha_fin,
-                        fechaReintegro: datoss.sp_fecha_reintegro,
-                        numDias: datoss.sp_dias,
-                        respPermiso: idPermiso,
-                        token: datoss.token,
-                        observaciones: datoss.sp_observaciones || formData.get('observaciones'),
-                    });
+                    try {
+                        await enviarCorreoCreacion({
+                            nombre: user?.nombre || user?.fun_nombre_completo || '',
+                            id: idUsu,
+                            fechaIni: datoss.sp_fecha_inicio,
+                            fechaFin: datoss.sp_fecha_fin,
+                            fechaReintegro: datoss.sp_fecha_reintegro,
+                            numDias: datoss.sp_dias,
+                            respPermiso: idPermiso,
+                            token: datoss.token,
+                            observaciones: datoss.sp_observaciones || formData.get('observaciones'),
+                        });
+                    } catch (correoError) {
+                        console.error('Error al enviar correo:', correoError);
+                    }
                 } catch (e) {
-                    console.error('Error post-creacion:', e);
+                    console.error('Error al procesar datos post-creacion:', e);
                 }
             }
 

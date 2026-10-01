@@ -92,7 +92,8 @@ function parseRows(html) {
             cells.push(cleanCell(tdMatch[1]));
         }
 
-        if (cells.length === 0) continue;
+        if (cells.length < 2) continue;
+        if (!idUsuario || idUsuario === 'null' || idUsuario === 'undefined') continue;
 
         const nombreCelda = cells[0] || nombre;
         const solicitudesVacaciones = cells[1] || '';

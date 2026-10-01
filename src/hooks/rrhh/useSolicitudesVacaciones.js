@@ -149,7 +149,13 @@ export function useSolicitudesVacaciones(funId, usuario) {
             try {
                 const data = await getListaPersonalVacaciones(accion, { id: funId });
                 const rows = extractRows(data);
-                setPersonal(rows);
+                // Filtro defensivo: solo incluir filas con idUsuario numérico válido.
+                // Descarta separadores de área (ej. "Tecnología Información") que
+                // el backend PHP inyecta como filas de encabezado de grupo.
+                const validRows = rows.filter(
+                    (row) => row.idUsuario && String(row.idUsuario).trim() !== '' && !isNaN(Number(row.idUsuario))
+                );
+                setPersonal(validRows);
                 setModoLista(accion);
             } catch (err) {
                 setPersonalError(err.message);

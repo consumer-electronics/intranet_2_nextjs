@@ -29,6 +29,7 @@ export async function checkPermisoVacacionesTodos(funId) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fun_id: funId, mod_nombre: 'vacaciones_todos' }),
+        cache: 'no-store',
     });
     return handleResponse(response);
 }
@@ -44,6 +45,7 @@ export async function getListaPersonalVacaciones(accion = 'listaUsuario', params
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion, ...params }),
+        cache: 'no-store',
     });
     return handleResponse(response);
 }
@@ -57,6 +59,7 @@ export async function getVacacionesUsuario({ idUsu, idEstado = 1, lider = 0 }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idUsu, idEstado, lider }),
+        cache: 'no-store',
     });
     return handleResponse(response);
 }
@@ -71,6 +74,7 @@ export async function cambiarEstadoVacaciones({ idPermiso, idEstado }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idPermiso, idEstado }),
+        cache: 'no-store',
     });
     return handleResponse(response);
 }
@@ -84,6 +88,7 @@ export async function crearVacaciones(formData) {
     const response = await fetch(`${BASE_API}/crear`, {
         method: 'POST',
         body: formData,
+        cache: 'no-store',
     });
     return handleResponse(response);
 }
@@ -97,6 +102,7 @@ export async function getNumeroVacaciones() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
+        cache: 'no-store',
     });
     return handleResponse(response);
 }
@@ -111,6 +117,7 @@ export async function getPeriodosYeminus(idYem) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idUsuYem: idYem }),
+        cache: 'no-store',
     });
     return handleResponse(response);
 }
@@ -126,6 +133,7 @@ export async function modificarPdfVacaciones(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        cache: 'no-store',
     });
 
     const contentType = response.headers.get('content-type') || '';
@@ -151,14 +159,15 @@ export async function modificarPdfVacaciones(payload) {
 
 /**
  * Descarga el PDF ya generado de una solicitud de vacaciones.
- * @param {number|string} idPermiso
+ * @param {object} payload - {idPermiso, idUsu}
  * @returns {Promise<Blob>}
  */
-export async function descargarPdfVacaciones(idPermiso) {
+export async function descargarPdfVacaciones({ idPermiso, idUsu }) {
     const response = await fetch(`${BASE_API}/pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idPermiso }),
+        body: JSON.stringify({ idPermiso, idUsu }),
+        cache: 'no-store',
     });
 
     if (!response.ok) {

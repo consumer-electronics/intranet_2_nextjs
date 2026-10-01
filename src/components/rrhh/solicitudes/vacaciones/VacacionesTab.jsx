@@ -94,7 +94,7 @@ export default function VacacionesTab({ funcionarioId, user }) {
     /* ── Acciones ── */
     const handleVerVacaciones = (row) => {
         const usuario = {
-            idUsuario: row.idUsuario ?? row.id,
+            idUsuario: row.idUsuario || row.id,
             nombre: row.nombre ?? '',
         };
         setUsuarioSeleccionado(usuario);
@@ -131,7 +131,7 @@ export default function VacacionesTab({ funcionarioId, user }) {
             try { await enviarCorreoAprobacion(rowToCorreoPayload(row)); } catch (_) {}
             try {
                 await marcarPdfAprobado({
-                    idUsu: row.idUsu ?? row.id,
+                    idUsu: row.idUsu || usuarioSeleccionado?.idUsuario,
                     idPermiso: row.idPermiso,
                 });
             } catch (_) {}
@@ -172,7 +172,7 @@ export default function VacacionesTab({ funcionarioId, user }) {
             notify('Se ha reversado la solicitud de vacaciones.');
             try {
                 await marcarPdfReversado({
-                    idUsu: row.idUsu ?? row.id,
+                    idUsu: row.idUsu || usuarioSeleccionado?.idUsuario,
                     idPermiso: row.idPermiso,
                 });
             } catch (_) {}
@@ -195,7 +195,7 @@ export default function VacacionesTab({ funcionarioId, user }) {
         try {
             await descargarPdf({
                 idPermiso: row.idPermiso,
-                idUsu: row.idUsu ?? row.id,
+                idUsu: row.idUsu || usuarioSeleccionado?.idUsuario,
             });
             notify('PDF descargado correctamente.');
         } catch (err) {
@@ -217,9 +217,11 @@ export default function VacacionesTab({ funcionarioId, user }) {
                     const datosResponse = await fetchDatosPermiso({ idUsu, idPermiso });
                     const datoss = datosResponse?.data || {};
 
+                    const nombreCompleto = user?.fun_nombre_completo || user?.nombre_completo || user?.nombre || user?.name || 'Funcionario';
+
                     try {
                         await generarPdf({
-                            nombre: user?.nombre || user?.fun_nombre_completo || '',
+                            nombre: nombreCompleto,
                             idUsu: idUsu,
                             dias: datoss.sp_dias,
                             fechaInicio: datoss.sp_fecha_inicio,
@@ -233,7 +235,7 @@ export default function VacacionesTab({ funcionarioId, user }) {
 
                     try {
                         await enviarCorreoCreacion({
-                            nombre: user?.nombre || user?.fun_nombre_completo || '',
+                            nombre: nombreCompleto,
                             id: idUsu,
                             fechaIni: datoss.sp_fecha_inicio,
                             fechaFin: datoss.sp_fecha_fin,

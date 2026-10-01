@@ -96,8 +96,10 @@ export function useSolicitudesVacaciones(funId, usuario) {
     const cedulaUsuario =
         usuario?.cedula ?? usuario?.fun_cedula ?? usuario?.dni ?? '';
     const idYemUsuario =
+        usuario?.useryem ??
         usuario?.id_geminus ??
         usuario?.fun_empleado_geminus ??
+        usuario?.funEmpleadoGeminus ??
         usuario?.geminus ??
         '';
     const rolUsuario = usuario?.car_nombre ?? usuario?.car_tag ?? '';
@@ -226,7 +228,7 @@ export function useSolicitudesVacaciones(funId, usuario) {
      * @param {{ idPermiso: number|string, idUsu?: number|string }} payload
      */
     const descargarPdf = useCallback(async ({ idPermiso, idUsu }) => {
-        const blob = await descargarPdfVacaciones(idPermiso);
+        const blob = await descargarPdfVacaciones({ idPermiso, idUsu });
         descargarBlob(blob, `${idPermiso}.pdf`);
         return blob;
     }, []);

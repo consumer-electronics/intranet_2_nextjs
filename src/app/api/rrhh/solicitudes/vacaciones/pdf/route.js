@@ -14,10 +14,11 @@ export async function POST(request) {
     try {
         const body = await request.json().catch(() => ({}));
         const idPermiso = body.idPermiso ?? body.id ?? '';
+        const idUsuario = body.idUsu ?? body.idUsuario ?? '';
 
-        if (!idPermiso) {
+        if (!idPermiso || !idUsuario) {
             return NextResponse.json(
-                { message: 'Falta el id del permiso.' },
+                { message: 'Falta el id del permiso o el usuario.' },
                 { status: 400 }
             );
         }
@@ -25,6 +26,7 @@ export async function POST(request) {
         const formData = new URLSearchParams();
         formData.set('accion', 'traerPdf');
         formData.set('idPermiso', String(idPermiso));
+        formData.set('idUsuario', String(idUsuario));
 
         const legacyResponse = await fetch(LEGACY_ENDPOINT, {
             method: 'POST',

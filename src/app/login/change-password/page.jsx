@@ -36,22 +36,26 @@ export default function ChangePasswordPage() {
   const [success, setSuccess] = useState(false);
   const [idUsuario, setIdUsuario] = useState(null);
   const [username, setUsername] = useState('');
-  const { login } = useAuth({ redirectOnUnauthenticated: false });
+  const { login, user } = useAuth({ redirectOnUnauthenticated: false });
 
   useEffect(() => {
     // Intentar recuperar ID de usuario del session storage (viene de la recuperación de contraseña)
-    // O si en el futuro se implementa un JWT con mustChangePassword = true, se leería de context.
+    // O si es un usuario que acaba de loguearse y requiere cambio (primer ingreso), usar su sesión.
     const storedId = sessionStorage.getItem('recovery_user_id');
     const storedUsername = sessionStorage.getItem('recovery_user_username');
+    
     if (storedId) {
       setIdUsuario(storedId);
+    } else if (user) {
+      setIdUsuario(user.fun_id ?? user.funId ?? user.id ?? user.id_usuario);
     }
+
     if (storedUsername) {
       setUsername(storedUsername);
+    } else if (user) {
+      setUsername(user.usuario ?? user.user ?? user.nro_doc ?? '');
     }
-    // Nota: Si este componente también se usará para usuarios logueados que deben cambiar clave,
-    // se debería sacar el idUsuario del hook useAuth().
-  }, []);
+  }, [user]);
 
   const validations = {
     length: password.length >= 8,

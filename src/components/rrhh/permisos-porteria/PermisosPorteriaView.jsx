@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -16,10 +16,15 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Button from '@mui/material/Button';
 
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+
 import SyncIcon from '@mui/icons-material/Sync';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import ListIcon from '@mui/icons-material/List';
+import SearchIcon from '@mui/icons-material/Search';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 import { useAuth } from '@/hooks/useAuth';
 import { usePermisosPorteria } from '@/hooks/rrhh/usePermisosPorteria';
@@ -114,6 +119,12 @@ export default function PermisosPorteriaView() {
   const [confirmarOpen, setConfirmarOpen] = useState(false);
   const [visitanteSeleccionado, setVisitanteSeleccionado] = useState(null);
   const [entregandoId, setEntregandoId] = useState(false);
+
+  // Búsqueda y exportación
+  const permisosTableRef = useRef(null);
+  const visitantesTableRef = useRef(null);
+  const [searchPermisos, setSearchPermisos] = useState('');
+  const [searchVisitantes, setSearchVisitantes] = useState('');
 
   /*
    * =========================================================
@@ -281,8 +292,8 @@ export default function PermisosPorteriaView() {
         maxWidth:
           view === TAB_PERMISOS ? 900 : '95%',
         mx: 'auto',
-        mt: 4,
-        mb: 5,
+        mt: 2,
+        mb: 4,
       }}
     >
       <Paper
@@ -294,19 +305,10 @@ export default function PermisosPorteriaView() {
         }}
       >
         {/* ── Encabezado ── */}
-        <Box sx={{ px: 3, pt: 3, pb: 0 }}>
-          <Typography
-            variant="h5"
-            component="h1"
-            fontWeight={700}
-            gutterBottom
-          >
-            Portería
-          </Typography>
+        <Box sx={{ px: 3, pt: 2, pb: 1 }}>
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ mb: 2 }}
           >
             Gestión de permisos aprobados y control de visitantes
           </Typography>
@@ -317,7 +319,7 @@ export default function PermisosPorteriaView() {
           direction="row"
           alignItems="center"
           justifyContent="space-between"
-          sx={{ px: 2, borderBottom: 1, borderColor: 'divider' }}
+          sx={{ px: 2, borderBottom: 1, borderColor: 'divider', minHeight: 48 }}
         >
           <Tabs
             value={view}
@@ -325,6 +327,13 @@ export default function PermisosPorteriaView() {
             textColor="primary"
             indicatorColor="primary"
             aria-label="Secciones de portería"
+            sx={{
+              minHeight: 48,
+              '& .MuiTab-root': {
+                minHeight: 48,
+                py: 1,
+              },
+            }}
           >
             <Tab
               value={TAB_PERMISOS}
@@ -345,7 +354,7 @@ export default function PermisosPorteriaView() {
           </Tabs>
 
           {/* Acciones contextuales al tab activo */}
-          <Stack direction="row" spacing={0.5} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 0.5, ml: 'auto' }}>
             {view === TAB_VISITANTES && (
               <Tooltip title="Carnets entregados">
                 <IconButton
@@ -354,7 +363,7 @@ export default function PermisosPorteriaView() {
                   onClick={() => setEntregadosOpen(true)}
                   aria-label="Ver carnets entregados"
                 >
-                  <ListIcon />
+                  <ListIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             )}
@@ -365,14 +374,48 @@ export default function PermisosPorteriaView() {
                 onClick={handleSync}
                 aria-label="Sincronizar datos"
               >
-                <SyncIcon />
+                <SyncIcon fontSize="small" />
               </IconButton>
             </Tooltip>
+
+            <TextField
+              size="small"
+              placeholder={view === TAB_PERMISOS ? "Buscar funcionario…" : "Buscar visitante…"}
+              value={view === TAB_PERMISOS ? searchPermisos : searchVisitantes}
+              onChange={(e) => view === TAB_PERMISOS ? setSearchPermisos(e.target.value) : setSearchVisitantes(e.target.value)}
+              sx={{ width: 220, '& .MuiOutlinedInput-root': { height: 36 } }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+
+            <Button
+              startIcon={<FileDownloadIcon fontSize="small" />}
+              variant="outlined"
+              color="success"
+              size="small"
+              sx={{ height: 36, whiteSpace: 'nowrap' }}
+              onClick={() => {
+                if (view === TAB_PERMISOS) {
+                  permisosTableRef.current?.handleExport();
+                } else {
+                  visitantesTableRef.current?.handleExport();
+                }
+              }}
+            >
+              Exportar
+            </Button>
           </Stack>
         </Stack>
 
         {/* ── Contenido del tab ── */}
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 2 }}>
           <Box
             role="tabpanel"
             id="tabpanel-permisos"
@@ -381,8 +424,10 @@ export default function PermisosPorteriaView() {
           >
             {view === TAB_PERMISOS && (
               <PermisosTable
+                ref={permisosTableRef}
                 rows={permisos}
                 loading={loadingPermisos}
+                search={searchPermisos}
               />
             )}
           </Box>
@@ -395,10 +440,12 @@ export default function PermisosPorteriaView() {
           >
             {view === TAB_VISITANTES && (
               <VisitantesTable
+                ref={visitantesTableRef}
                 rows={visitantes}
                 loading={loadingVisitantes}
                 onSolicitarEntregar={handleSolicitarEntregar}
                 onVerPersona={handleVerPersona}
+                search={searchVisitantes}
               />
             )}
           </Box>

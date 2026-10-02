@@ -19,7 +19,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import ReplayIcon from '@mui/icons-material/Replay';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PrintIcon from '@mui/icons-material/Print';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { esES } from '@mui/x-data-grid/locales';
 
@@ -99,7 +99,7 @@ const SPANISH_LOCALE = {
  */
 const FILTROS = [
     { id: ESTADO_VACACIONES.EN_ESPERA, label: 'En espera', lider: 1 },
-    { id: ESTADO_VACACIONES.APROBADO, label: 'Aprobados', lider: 0 },
+    { id: ESTADO_VACACIONES.APROBADO, label: 'Aprobados', lider: 1 },
     { id: ESTADO_VACACIONES.RECHAZADO, label: 'Rechazados', lider: 0 },
 ];
 
@@ -143,10 +143,25 @@ export default function PermisosVacacionesDialog({
 }) {
     const theme = useTheme();
     const [observacionesAbierta, setObservacionesAbierta] = useState(null);
+    const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', row: null });
+
+    const handleConfirm = () => {
+        const { type, row } = confirmDialog;
+        if (type === 'aprobar') onAprobar?.(row);
+        if (type === 'rechazar') onRechazar?.(row);
+        if (type === 'reversar') onReversar?.(row);
+        setConfirmDialog({ open: false, type: '', row: null });
+    };
+
+    const handleCloseConfirm = () => {
+        setConfirmDialog({ open: false, type: '', row: null });
+    };
 
     const nombre = usuario?.nombre || '';
 
     const esEnEspera = estadoActivo === ESTADO_VACACIONES.EN_ESPERA;
+    const esAprobado = estadoActivo === ESTADO_VACACIONES.APROBADO;
+    const mostrarAcciones = esEnEspera || esAprobado;
 
     const columns = [
         {
@@ -198,22 +213,37 @@ export default function PermisosVacacionesDialog({
             headerName: 'Observaciones',
             width: 140,
             sortable: false,
+            align: 'center',
+            headerAlign: 'center',
             renderCell: (params) => {
                 const obs = params.value || '';
                 if (!obs) return <Typography variant="body2" color="text.disabled">—</Typography>;
                 return (
-                    <Tooltip title={obs} arrow>
-                        <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                setObservacionesAbierta(obs);
-                            }}
-                        >
-                            <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
+                        <Tooltip title={obs} arrow>
+                            <IconButton
+                                size="small"
+                                sx={{
+                                    color: 'primary.main',
+                                    bgcolor: (t) => alpha(t.palette.primary.main, 0.08),
+                                    border: (t) => `1px solid ${alpha(t.palette.primary.main, 0.2)}`,
+                                    '&:hover': {
+                                        bgcolor: (t) => alpha(t.palette.primary.main, 0.2),
+                                        transform: 'scale(1.08)',
+                                    },
+                                    transition: 'all 0.2s ease-in-out',
+                                    width: 32,
+                                    height: 32,
+                                }}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setObservacionesAbierta(obs);
+                                }}
+                            >
+                                <VisibilityIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                 );
             },
         },
@@ -228,32 +258,48 @@ export default function PermisosVacacionesDialog({
                 const row = params.row;
                 const imprimiendo = imprimiendoId === row.idPermiso;
                 return (
-                    <Tooltip title="Imprimir PDF">
-                        <IconButton
-                            size="small"
-                            color="secondary"
-                            disabled={imprimiendo || loading}
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                onImprimir?.(row);
-                            }}
-                        >
-                            {imprimiendo ? (
-                                <CircularProgress size={16} color="inherit" />
-                            ) : (
-                                <PrintIcon fontSize="small" />
-                            )}
-                        </IconButton>
-                    </Tooltip>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
+                        <Tooltip title="Imprimir PDF" arrow>
+                            <IconButton
+                                size="small"
+                                disabled={imprimiendo || loading}
+                                sx={{
+                                    color: 'secondary.main',
+                                    bgcolor: (t) => alpha(t.palette.secondary.main, 0.08),
+                                    border: (t) => `1px solid ${alpha(t.palette.secondary.main, 0.2)}`,
+                                    '&:hover': {
+                                        bgcolor: (t) => alpha(t.palette.secondary.main, 0.2),
+                                        transform: 'scale(1.08)',
+                                    },
+                                    '&.Mui-disabled': {
+                                        bgcolor: 'action.disabledBackground',
+                                    },
+                                    transition: 'all 0.2s ease-in-out',
+                                    width: 32,
+                                    height: 32,
+                                }}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    onImprimir?.(row);
+                                }}
+                            >
+                                {imprimiendo ? (
+                                    <CircularProgress size={16} color="inherit" />
+                                ) : (
+                                    <PrintIcon sx={{ fontSize: 18 }} />
+                                )}
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                 );
             },
         },
-        ...(esEnEspera
+        ...(mostrarAcciones
             ? [
                 {
                     field: 'acciones',
                     headerName: 'Acciones',
-                    width: 150,
+                    width: 160,
                     sortable: false,
                     align: 'center',
                     headerAlign: 'center',
@@ -261,57 +307,99 @@ export default function PermisosVacacionesDialog({
                         const row = params.row;
                         const accionando = accionandoId === row.idPermiso;
                         return (
-                            <Stack direction="row" spacing={0.5}>
+                            <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
                                 {row.puedeAprobar && (
-                                    <Tooltip title="Aprobar">
+                                    <Tooltip title="Aprobar" arrow>
                                         <IconButton
                                             size="small"
-                                            color="success"
                                             disabled={accionando || loading}
+                                            sx={{
+                                                color: 'success.main',
+                                                bgcolor: (t) => alpha(t.palette.success.main, 0.08),
+                                                border: (t) => `1px solid ${alpha(t.palette.success.main, 0.25)}`,
+                                                '&:hover': {
+                                                    bgcolor: (t) => alpha(t.palette.success.main, 0.22),
+                                                    transform: 'scale(1.08)',
+                                                },
+                                                '&.Mui-disabled': {
+                                                    bgcolor: 'action.disabledBackground',
+                                                },
+                                                transition: 'all 0.2s ease-in-out',
+                                                width: 32,
+                                                height: 32,
+                                            }}
                                             onClick={(event) => {
                                                 event.stopPropagation();
-                                                onAprobar?.(row);
+                                                setConfirmDialog({ open: true, type: 'aprobar', row });
                                             }}
                                         >
                                             {accionando ? (
                                                 <CircularProgress size={16} color="inherit" />
                                             ) : (
-                                                <CheckIcon fontSize="small" />
+                                                <CheckIcon sx={{ fontSize: 18 }} />
                                             )}
                                         </IconButton>
                                     </Tooltip>
                                 )}
                                 {row.puedeRechazar && (
-                                    <Tooltip title="Rechazar">
+                                    <Tooltip title="Rechazar" arrow>
                                         <IconButton
                                             size="small"
-                                            color="error"
                                             disabled={accionando || loading}
+                                            sx={{
+                                                color: 'error.main',
+                                                bgcolor: (t) => alpha(t.palette.error.main, 0.08),
+                                                border: (t) => `1px solid ${alpha(t.palette.error.main, 0.25)}`,
+                                                '&:hover': {
+                                                    bgcolor: (t) => alpha(t.palette.error.main, 0.22),
+                                                    transform: 'scale(1.08)',
+                                                },
+                                                '&.Mui-disabled': {
+                                                    bgcolor: 'action.disabledBackground',
+                                                },
+                                                transition: 'all 0.2s ease-in-out',
+                                                width: 32,
+                                                height: 32,
+                                            }}
                                             onClick={(event) => {
                                                 event.stopPropagation();
-                                                onRechazar?.(row);
+                                                setConfirmDialog({ open: true, type: 'rechazar', row });
                                             }}
                                         >
-                                            <CancelIcon fontSize="small" />
+                                            <CancelIcon sx={{ fontSize: 18 }} />
                                         </IconButton>
                                     </Tooltip>
                                 )}
                                 {row.puedeReversar && (
-                                    <Tooltip title="Reversar">
+                                    <Tooltip title="Reversar" arrow>
                                         <IconButton
                                             size="small"
-                                            color="warning"
                                             disabled={accionando || loading}
+                                            sx={{
+                                                color: 'warning.main',
+                                                bgcolor: (t) => alpha(t.palette.warning.main, 0.1),
+                                                border: (t) => `1px solid ${alpha(t.palette.warning.main, 0.25)}`,
+                                                '&:hover': {
+                                                    bgcolor: (t) => alpha(t.palette.warning.main, 0.22),
+                                                    transform: 'scale(1.08)',
+                                                },
+                                                '&.Mui-disabled': {
+                                                    bgcolor: 'action.disabledBackground',
+                                                },
+                                                transition: 'all 0.2s ease-in-out',
+                                                width: 32,
+                                                height: 32,
+                                            }}
                                             onClick={(event) => {
                                                 event.stopPropagation();
-                                                onReversar?.(row);
+                                                setConfirmDialog({ open: true, type: 'reversar', row });
                                             }}
                                         >
-                                            <ReplayIcon fontSize="small" />
+                                            <ReplayIcon sx={{ fontSize: 18 }} />
                                         </IconButton>
                                     </Tooltip>
                                 )}
-                            </Stack>
+                            </Box>
                         );
                     },
                 },
@@ -485,6 +573,50 @@ export default function PermisosVacacionesDialog({
                 </DialogContent>
                 <DialogActions sx={{ px: 3, py: 2 }}>
                     <Button onClick={() => setObservacionesAbierta(null)}>Cerrar</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Modal de confirmación */}
+            <Dialog
+                open={confirmDialog.open}
+                onClose={handleCloseConfirm}
+                fullWidth
+                maxWidth="xs"
+            >
+                <DialogTitle sx={{ pr: 6 }}>
+                    <Typography variant="h6" component="div" fontWeight={700}>
+                        Confirmar acción
+                    </Typography>
+                    <IconButton
+                        aria-label="Cerrar"
+                        onClick={handleCloseConfirm}
+                        sx={{ position: 'absolute', right: 8, top: 8 }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent dividers>
+                    <Typography variant="body1">
+                        {confirmDialog.type === 'aprobar' && '¿Estás seguro de que deseas aprobar esta solicitud?'}
+                        {confirmDialog.type === 'rechazar' && '¿Estás seguro de que deseas rechazar esta solicitud?'}
+                        {confirmDialog.type === 'reversar' && '¿Estás seguro de que deseas reversar esta solicitud?'}
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, py: 2 }}>
+                    <Button onClick={handleCloseConfirm} color="inherit">
+                        Cancelar
+                    </Button>
+                    <Button 
+                        onClick={handleConfirm} 
+                        color={
+                            confirmDialog.type === 'aprobar' ? 'success' : 
+                            confirmDialog.type === 'rechazar' ? 'error' : 
+                            'warning'
+                        } 
+                        variant="contained"
+                    >
+                        Confirmar
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Dialog>

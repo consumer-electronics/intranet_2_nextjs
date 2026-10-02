@@ -19,7 +19,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CancelIcon from '@mui/icons-material/Cancel';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DescriptionIcon from '@mui/icons-material/Description';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { esES } from '@mui/x-data-grid/locales';
 
@@ -196,22 +196,37 @@ export default function PermisosUsuarioDialog({
             headerName: 'Observaciones',
             width: 140,
             sortable: false,
+            align: 'center',
+            headerAlign: 'center',
             renderCell: (params) => {
                 const obs = params.value || '';
                 if (!obs) return <Typography variant="body2" color="text.disabled">—</Typography>;
                 return (
-                    <Tooltip title={obs} arrow>
-                        <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                setObservacionesAbierta(obs);
-                            }}
-                        >
-                            <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
+                        <Tooltip title={obs} arrow>
+                            <IconButton
+                                size="small"
+                                sx={{
+                                    color: 'primary.main',
+                                    bgcolor: (t) => alpha(t.palette.primary.main, 0.08),
+                                    border: (t) => `1px solid ${alpha(t.palette.primary.main, 0.2)}`,
+                                    '&:hover': {
+                                        bgcolor: (t) => alpha(t.palette.primary.main, 0.2),
+                                        transform: 'scale(1.08)',
+                                    },
+                                    transition: 'all 0.2s ease-in-out',
+                                    width: 32,
+                                    height: 32,
+                                }}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setObservacionesAbierta(obs);
+                                }}
+                            >
+                                <VisibilityIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                 );
             },
         },
@@ -226,19 +241,32 @@ export default function PermisosUsuarioDialog({
                 const href = params.value;
                 if (!href) return <Typography variant="body2" color="text.disabled">—</Typography>;
                 return (
-                    <Tooltip title="Ver documento">
-                        <IconButton
-                            size="small"
-                            color="secondary"
-                            component="a"
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(event) => event.stopPropagation()}
-                        >
-                            <DescriptionIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
+                        <Tooltip title="Ver documento" arrow>
+                            <IconButton
+                                size="small"
+                                component="a"
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                sx={{
+                                    color: 'secondary.main',
+                                    bgcolor: (t) => alpha(t.palette.secondary.main, 0.08),
+                                    border: (t) => `1px solid ${alpha(t.palette.secondary.main, 0.2)}`,
+                                    '&:hover': {
+                                        bgcolor: (t) => alpha(t.palette.secondary.main, 0.2),
+                                        transform: 'scale(1.08)',
+                                    },
+                                    transition: 'all 0.2s ease-in-out',
+                                    width: 32,
+                                    height: 32,
+                                }}
+                                onClick={(event) => event.stopPropagation()}
+                            >
+                                <DescriptionIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                 );
             },
         },
@@ -247,7 +275,7 @@ export default function PermisosUsuarioDialog({
                 {
                     field: 'acciones',
                     headerName: 'Acciones',
-                    width: 130,
+                    width: 140,
                     sortable: false,
                     align: 'center',
                     headerAlign: 'center',
@@ -255,13 +283,27 @@ export default function PermisosUsuarioDialog({
                         const row = params.row;
                         const accionando = accionandoId === row.idPermiso;
                         return (
-                            <Stack direction="row" spacing={0.5}>
+                            <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
                                 {row.puedeAprobar && (
-                                    <Tooltip title="Aprobar">
+                                    <Tooltip title="Aprobar" arrow>
                                         <IconButton
                                             size="small"
-                                            color="success"
                                             disabled={accionando || loading}
+                                            sx={{
+                                                color: 'success.main',
+                                                bgcolor: (t) => alpha(t.palette.success.main, 0.08),
+                                                border: (t) => `1px solid ${alpha(t.palette.success.main, 0.25)}`,
+                                                '&:hover': {
+                                                    bgcolor: (t) => alpha(t.palette.success.main, 0.22),
+                                                    transform: 'scale(1.08)',
+                                                },
+                                                '&.Mui-disabled': {
+                                                    bgcolor: 'action.disabledBackground',
+                                                },
+                                                transition: 'all 0.2s ease-in-out',
+                                                width: 32,
+                                                height: 32,
+                                            }}
                                             onClick={(event) => {
                                                 event.stopPropagation();
                                                 onAprobar?.(row);
@@ -270,27 +312,41 @@ export default function PermisosUsuarioDialog({
                                             {accionando ? (
                                                 <CircularProgress size={16} color="inherit" />
                                             ) : (
-                                                <CheckIcon fontSize="small" />
+                                                <CheckIcon sx={{ fontSize: 18 }} />
                                             )}
                                         </IconButton>
                                     </Tooltip>
                                 )}
                                 {row.puedeRechazar && (
-                                    <Tooltip title="Rechazar">
+                                    <Tooltip title="Rechazar" arrow>
                                         <IconButton
                                             size="small"
-                                            color="error"
                                             disabled={accionando || loading}
+                                            sx={{
+                                                color: 'error.main',
+                                                bgcolor: (t) => alpha(t.palette.error.main, 0.08),
+                                                border: (t) => `1px solid ${alpha(t.palette.error.main, 0.25)}`,
+                                                '&:hover': {
+                                                    bgcolor: (t) => alpha(t.palette.error.main, 0.22),
+                                                    transform: 'scale(1.08)',
+                                                },
+                                                '&.Mui-disabled': {
+                                                    bgcolor: 'action.disabledBackground',
+                                                },
+                                                transition: 'all 0.2s ease-in-out',
+                                                width: 32,
+                                                height: 32,
+                                            }}
                                             onClick={(event) => {
                                                 event.stopPropagation();
                                                 onRechazar?.(row);
                                             }}
                                         >
-                                            <CancelIcon fontSize="small" />
+                                            <CancelIcon sx={{ fontSize: 18 }} />
                                         </IconButton>
                                     </Tooltip>
                                 )}
-                            </Stack>
+                            </Box>
                         );
                     },
                 },

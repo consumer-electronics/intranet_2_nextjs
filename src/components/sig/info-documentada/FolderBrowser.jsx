@@ -20,6 +20,8 @@ import {
     Stack,
     TextField,
     Typography,
+    useMediaQuery,
+    useTheme,
 } from '@mui/material';
 
 import PdfViewerModal from '@/components/common/documents/PdfViewerModal';
@@ -37,6 +39,9 @@ import { FOLDER_PERMISSION_MAP } from '@/config/sig/permissions';
  * como dentro de un Dialog (FolderExplorerModal, desde el Mapa de procesos).
  */
 export default function FolderBrowser({ carpetaBase, tituloRaiz = 'Documentos generales', active = true, soloGenerales = false }) {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
     const { busqueda, setBusqueda, data, loading, error, enBusqueda } = useFolderExplorer({
         carpetaBase,
         active,
@@ -73,7 +78,7 @@ export default function FolderBrowser({ carpetaBase, tituloRaiz = 'Documentos ge
 
     const abrirArchivo = (archivo, rutaCarpetas) => {
         const url = construirUrlArchivo(rutaBase, rutaCarpetas, archivo);
-        if (esPdf(archivo)) {
+        if (esPdf(archivo) && !isMobile) {
             setDocumentoActivo({ label: archivo.replace(/_/g, ' '), file: url });
         } else {
             window.open(url, '_blank', 'noopener,noreferrer');

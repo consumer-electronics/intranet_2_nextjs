@@ -167,6 +167,7 @@ export default function PayslipPreviewModal({
                         previewUrl && (
                             <Document
                                 file={previewUrl}
+                                options={{ enableScripting: false }}
                                 onLoadSuccess={onDocumentLoadSuccess}
                                 onLoadError={onDocumentLoadError}
                                 password={cedula}

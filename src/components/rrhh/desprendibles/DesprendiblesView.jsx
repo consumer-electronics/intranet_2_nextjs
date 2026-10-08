@@ -30,6 +30,14 @@ export default function DesprendiblesView() {
         downloadFile,
     } = useDesprendibles();
 
+    const handleSelect = (file) => {
+        if (isMobile) {
+            window.open(`/api/rrhh/desprendibles/download?id=${encodeURIComponent(file.doc)}`, '_blank');
+        } else {
+            openPreview(file);
+        }
+    };
+
 
     return (
         <Box>
@@ -56,7 +64,7 @@ export default function DesprendiblesView() {
                             key={file.doc}
                             file={file}
                             isLatest={index === 0}
-                            onSelect={() => openPreview(file)}
+                            onSelect={() => handleSelect(file)}
                             onDownload={() => downloadFile(file)}
                         />
                     ))}

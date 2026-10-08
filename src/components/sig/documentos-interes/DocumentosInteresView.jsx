@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Stack } from '@mui/material';
+import { Stack, useMediaQuery, useTheme } from '@mui/material';
 
 import DocumentList from '@/components/common/documents/DocumentList';
 import PdfViewerModal from '@/components/common/documents/PdfViewerModal';
@@ -13,6 +13,8 @@ import { DOCUMENTOS_INTERES_ITEMS } from '@/config/sig/documentosInteresDocument
  * El título de la sección lo muestra el TopBar via menuConfig.js.
  */
 export default function DocumentosInteresView() {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [documentoActivo, setDocumentoActivo] = useState(null);
 
     return (
@@ -20,7 +22,7 @@ export default function DocumentosInteresView() {
             <DocumentList
                 items={DOCUMENTOS_INTERES_ITEMS}
                 onSelect={(item) => {
-                    if (item.type === 'folder') {
+                    if (item.type === 'folder' || isMobile) {
                         window.open(item.file, '_blank');
                     } else {
                         setDocumentoActivo(item);

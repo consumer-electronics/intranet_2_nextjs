@@ -33,8 +33,12 @@ export async function GET(request) {
 
         const response = await fetch(url, { headers: upstreamHeaders });
 
+        console.log(`[proxy-pdf] fetching: ${url}`);
+        console.log(`[proxy-pdf] response status: ${response.status}`);
+
         // Aceptar tanto 200 (descarga completa) como 206 (respuesta parcial)
         if (!response.ok && response.status !== 206) {
+            console.error(`[proxy-pdf] fetch failed: ${response.statusText}`);
             return new NextResponse(
                 `Failed to fetch from remote server: ${response.statusText}`,
                 { status: response.status }
@@ -57,8 +61,12 @@ export async function GET(request) {
         if (contentRange) responseHeaders['Content-Range'] = contentRange;
         if (contentLength) responseHeaders['Content-Length'] = contentLength;
 
+        // Leer el buffer completo (o el fragmento si es 206) en lugar de pasar el stream
+        // Esto evita bugs de Next.js donde corrompe los streams binarios (ej: PDFs)
+        const buffer = await response.arrayBuffer();
+
         // Preservar el status 206 para que el cliente sepa que es una respuesta parcial
-        return new NextResponse(response.body, {
+        return new NextResponse(buffer, {
             status: response.status, // 200 o 206
             headers: responseHeaders,
         });

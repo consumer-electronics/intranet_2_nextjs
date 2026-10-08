@@ -70,7 +70,7 @@ export default function ProcessPalette({ process }) {
                         fontWeight: 700,
                         // Color permanente de la variante del proceso (naranja, turquesa, etc.)
                         color: variant.text,
-                        fontSize: { xs: '0.40rem', sm: '0.6rem', md: '0.65rem', lg: '1rem' },
+                        fontSize: { xs: '0.35rem', sm: '0.55rem', md: '0.6rem', lg: '0.9rem' },
                         textAlign: 'center',
                         lineHeight: 1.1,
                         transition: 'color 150ms ease',

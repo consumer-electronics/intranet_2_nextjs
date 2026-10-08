@@ -1,55 +1,37 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import {
     Alert,
     Box,
     Button,
-    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
     DialogTitle,
     IconButton,
-    Stack,
     Typography,
 } from '@mui/material';
 
-/**
- * Carga diferida del visor PDF: react-pdf requiere APIs de navegador
- * (canvas, Worker) que no están disponibles en SSR.
- */
-const PdfViewer = dynamic(() => import('./PdfViewer'), {
-    ssr: false,
-    loading: () => (
-        <Stack
-            alignItems="center"
-            justifyContent="center"
-            spacing={2}
-            sx={{ height: 'calc(80vh - 120px)', minHeight: 400 }}
-        >
-            <CircularProgress />
-            <Typography variant="body2" color="text.secondary">
-                Preparando el visor...
-            </Typography>
-        </Stack>
-    ),
-});
+import PdfViewer from './PdfViewer';
 
 /**
  * Modal global para visualizar documentos PDF.
- *
- * Reemplaza a SigDocumentViewerModal (que usaba iframe).
+ * Usa el visor nativo del navegador (iframe) a través del proxy interno.
  *
  * Props:
  * - open    {boolean}   Controla la visibilidad del modal.
  * - titulo  {string}    Título del documento (opcional).
- * - src     {string}    URL del PDF (opcional).
+ * - src     {string}    URL original del PDF (http o ruta relativa).
  * - onClose {function}  Callback para cerrar.
  */
 export default function PdfViewerModal({ open, titulo, src, onClose }) {
+    // Para PDFs externos se enruta a través del proxy para evitar CORS / Content-Security-Policy
+    const proxySrc = src?.startsWith('http')
+        ? `/api/proxy-pdf?url=${encodeURIComponent(src)}`
+        : src;
+
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="xl">
             <DialogTitle
@@ -76,7 +58,7 @@ export default function PdfViewerModal({ open, titulo, src, onClose }) {
                 sx={{ p: 0, bgcolor: 'background.default', height: '80vh', overflow: 'hidden' }}
             >
                 {src ? (
-                    <PdfViewer src={src.startsWith('http') ? `/api/proxy-pdf?url=${encodeURIComponent(src)}` : src} title={titulo} />
+                    <PdfViewer src={proxySrc} title={titulo} originalSrc={src} />
                 ) : (
                     <Box sx={{ p: 4 }}>
                         <Alert severity="warning" variant="outlined">

@@ -54,7 +54,7 @@ export const MAPA_PROCESOS = {
                 title: 'GESTIÓN DEL DIRECCIONAMIENTO',
                 colorVariant: 'orange',
                 folderPath: '1.E01.Gestion del direccionamiento',
-                offset: { left: { xs: '15%', sm: '35%', md: '15%' } },
+                offset: { left: { xs: '15%', sm: '35%', md: '29%' } },
                 items: [
                     {
                         id: 'e01-control-interno',
@@ -75,7 +75,7 @@ export const MAPA_PROCESOS = {
                 title: 'SISTEMA INTEGRADO\nDE GESTIÓN',
                 colorVariant: 'orange',
                 folderPath: '2.E02. Sistema integrado de gestion',
-                offset: { right: '14%' },
+                offset: { right: '9%' },
                 items: [
                     {
                         id: 'e02-sistemas-gestion',
@@ -100,7 +100,7 @@ export const MAPA_PROCESOS = {
                 title: 'GESTIÓN DE LA CADENA\nDE SUMINISTROS',
                 colorVariant: 'turquoise',
                 folderPath: '3.V01.Gestion de la cadena de suministros',
-                offset: { left: { xs: '10%', sm: '18%', md: '14%', lg: '15%' }, top: { xs: '10%', sm: '45%', md: '0%', lg: '0%' } },
+                offset: { left: { xs: '10%', sm: '18%', md: '25%', lg: '25%' }, top: { xs: '10%', sm: '45%', md: '3%', lg: '3%' } },
                 items: [
                     {
                         id: 'v01-almacenamiento',
@@ -136,7 +136,7 @@ export const MAPA_PROCESOS = {
                 title: 'GESTIÓN DE PRODUCCIÓN',
                 colorVariant: 'turquoise',
                 folderPath: '4.V02. Gestion de produccion',
-                offset: { right: '10%', top: { xs: '10%', sm: '45%', md: '0%', lg: '0%' } },
+                offset: { right: '1%', top: { xs: '10%', sm: '45%', md: '3%', lg: '3%' } },
                 items: [
                     {
                         id: 'v02-gestion-produccion',
@@ -152,7 +152,7 @@ export const MAPA_PROCESOS = {
                 title: 'COMERCIALIZACIÓN',
                 colorVariant: 'turquoise',
                 folderPath: '5.V03. Comercializacion',
-                offset: { left: { xs: '10%', sm: '25%', md: '14%', lg: '15%' }, bottom: { xs: '45%', sm: '90%', md: '25%', lg: '26%' } },
+                offset: { left: { xs: '10%', sm: '25%', md: '25%', lg: '25%' }, bottom: { xs: '45%', sm: '90%', md: '46%', lg: '46%' } },
                 items: [
                     {
                         id: 'v03-comercial-sell-in',
@@ -178,7 +178,7 @@ export const MAPA_PROCESOS = {
                 title: 'SERVICIO POSTVENTA',
                 colorVariant: 'turquoise',
                 folderPath: '6.V04. Servicio postventa',
-                offset: { right: { xs: '15%', sm: '10%', md: '15%', lg: '20%' }, bottom: { xs: '40%', sm: '90%', md: '25%', lg: '26%' } },
+                offset: { right: { xs: '15%', sm: '10%', md: '01%', lg: '01%' }, bottom: { xs: '40%', sm: '90%', md: '46%', lg: '46%' } },
                 items: [
                     {
                         id: 'v04-servicio-cliente',
@@ -207,7 +207,7 @@ export const MAPA_PROCESOS = {
                 title: 'ADMINISTRACIÓN DE TALENTO HUMANO',
                 colorVariant: 'purple',
                 folderPath: '7.A01. Administracion del talento humano',
-                offset: { left: { xs: '15%', sm: '30%', md: '15%', lg: '25%' }, top: { xs: '30%', sm: '50%', md: '32%', lg: '35%' } },
+                offset: { left: { xs: '15%', sm: '30%', md: '25%', lg: '30%' }, top: { xs: '30%', sm: '50%', md: '32%', lg: '35%' } },
                 items: [
                     {
                         id: 'a01-gestion-humana',
@@ -228,7 +228,7 @@ export const MAPA_PROCESOS = {
                 title: 'INFRAESTRUCTURA',
                 colorVariant: 'purple',
                 folderPath: '8.A02. Infraestructura',
-                offset: { right: { xs: '15%', sm: '5%', md: '15%', lg: '8%' }, top: { xs: '25%', sm: '50%', md: '25%', lg: '35%' } },
+                offset: { right: { xs: '15%', sm: '5%', md: '15%', lg: '4%' }, top: { xs: '25%', sm: '50%', md: '25%', lg: '32%' } },
                 items: [
                     {
                         id: 'a02-mantenimiento',
@@ -254,7 +254,7 @@ export const MAPA_PROCESOS = {
                 title: 'GESTIÓN FINANCIERA',
                 colorVariant: 'purple',
                 folderPath: '9.A03. Gestion Financiera',
-                offset: { left: { xs: '63%', sm: '79%', md: '65%', lg: '75%' }, top: { xs: '30%', sm: '45%', md: '50%', lg: '40%' } },
+                offset: { left: { xs: '75%', sm: '79%', md: '75%', lg: '80%' }, top: { xs: '30%', sm: '45%', md: '50%', lg: '40%' } },
                 items: [
                     {
                         id: 'a03-gestion-financiera',

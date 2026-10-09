@@ -46,6 +46,21 @@ const compactPickerSx = {
 };
 
 /**
+ * Función para ordenar correctamente fechas en formato DD/MM/YYYY
+ */
+const dateSortComparator = (v1, v2) => {
+    if (!v1) return -1;
+    if (!v2) return 1;
+    const [d1, m1, y1] = v1.split('/');
+    const [d2, m2, y2] = v2.split('/');
+    if (!y1 || !y2) return v1.localeCompare(v2);
+    
+    const str1 = `${y1}${m1}${d1}`;
+    const str2 = `${y2}${m2}${d2}`;
+    return str1.localeCompare(str2);
+};
+
+/**
  * Columnas del modal de marcaciones por empleado.
  * Se definen fuera del render para que triggerExport() las lea
  * igual que las ve el DataGrid (con valueGetter para aplanar arrays).
@@ -57,6 +72,7 @@ const MODAL_COLUMNS = [
         flex: 1,
         minWidth: 140,
         sortable: true,
+        sortComparator: dateSortComparator,
     },
     {
         field: 'horas',
@@ -152,6 +168,7 @@ export default function BiometricoView() {
                     flex: 1,
                     minWidth: 140,
                     sortable: true,
+                    sortComparator: dateSortComparator,
                 },
                 {
                     field: 'horas',
@@ -179,6 +196,7 @@ export default function BiometricoView() {
                 flex: 1,
                 minWidth: 130,
                 sortable: true,
+                sortComparator: dateSortComparator,
                 renderCell: (params) => (
                     <Typography
                         variant="body2"

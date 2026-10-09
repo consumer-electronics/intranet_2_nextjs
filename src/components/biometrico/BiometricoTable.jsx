@@ -214,6 +214,9 @@ const BiometricoTable = forwardRef(function BiometricoTable(
                 localeText={SPANISH_LOCALE}
                 initialState={{
                     pagination: { paginationModel: { pageSize: 10 } },
+                    sorting: {
+                        sortModel: [{ field: 'fecha', sort: 'asc' }],
+                    },
                 }}
                 pageSizeOptions={[10, 25, 50]}
                 slots={{

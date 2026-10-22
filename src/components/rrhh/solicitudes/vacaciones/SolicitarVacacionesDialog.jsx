@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
@@ -11,18 +11,24 @@ import DialogActions from '@mui/material/DialogActions';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
+import Chip from '@mui/material/Chip';
+import Skeleton from '@mui/material/Skeleton';
+import Tooltip from '@mui/material/Tooltip';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
+import BeachAccessIcon from '@mui/icons-material/BeachAccess';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+
+import { getConsolidadoVacaciones } from '@/api/rrhh/solicitudesVacaciones';
 
 const MAX_DIAS = 30;
 
@@ -46,19 +52,8 @@ const gridSx = (columns) => ({
 /**
  * Diálogo "Solicitar Vacaciones".
  *
- * Replica el formulario del archivo legacy
- * `solicitud_permisos_vacas.php` (modal #modal_solicitarPermiso):
- *  - Datos del usuario (Nombre, Cédula, Fecha, Área) de solo lectura.
- *  - Fecha de inicio de vacaciones (mínimo: hoy).
- *  - Días de vacaciones (1 a 30).
- *  - Observaciones (obligatorias, mínimo 10 caracteres).
- *
- * Props:
- *  - open        {boolean}
- *  - onClose     {function}
- *  - usuario     {object}  Usuario autenticado (nombre, cedula/dni, area, rol).
- *  - onSubmit    {function(formData)}  Recibe el FormData listo para enviar.
- *  - submitting  {boolean}
+ * Formulario minimalista con integración de días disponibles de Yéminus
+ * (redondeados al entero más cercano y al corte del mes anterior).
  */
 export default function SolicitarVacacionesDialog({
     open,
@@ -75,22 +70,99 @@ export default function SolicitarVacacionesDialog({
     const [observaciones, setObservaciones] = useState('');
     const [errores, setErrores] = useState({});
 
-    const nombre = usuario?.nombre || usuario?.name || usuario?.fun_nombre_completo || [usuario?.fun_nombre, usuario?.fun_nombre2, usuario?.fun_apellido, usuario?.fun_apellido2].filter(Boolean).join(' ') || usuario?.nombres || usuario?.Nombre || '';
+    // Consolidado de vacaciones Yéminus
+    const [consolidado, setConsolidado] = useState(null);
+    const [loadingConsolidado, setLoadingConsolidado] = useState(false);
+    const [corteInfo, setCorteInfo] = useState('');
+
+    const funId =
+        usuario?.fun_id ??
+        usuario?.funId ??
+        usuario?.id ??
+        usuario?.id_usuario ??
+        '';
+
+    const contrato =
+        usuario?.useryem ??
+        usuario?.fun_empleado_geminus ??
+        usuario?.id_geminus ??
+        usuario?.idUserYem ??
+        usuario?.contrato ??
+        '';
+
+    const nombre =
+        usuario?.nombre ||
+        usuario?.name ||
+        usuario?.fun_nombre_completo ||
+        [usuario?.fun_nombre, usuario?.fun_nombre2, usuario?.fun_apellido, usuario?.fun_apellido2]
+            .filter(Boolean)
+            .join(' ') ||
+        usuario?.nombres ||
+        usuario?.Nombre ||
+        '';
+
     const cedula =
-        usuario?.cedula || usuario?.dni || usuario?.fun_cedula || usuario?.documento || usuario?.Cedula || '';
+        usuario?.cedula ||
+        usuario?.dni ||
+        usuario?.fun_cedula ||
+        usuario?.documento ||
+        usuario?.Cedula ||
+        '';
 
     const formatArea = (str) => {
         if (!str) return '';
         return str
             .split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ');
     };
 
-    const area = formatArea(usuario?.area || usuario?.dep_tag || usuario?.fun_area || usuario?.car_area || usuario?.dep_nombre || usuario?.dependencia || usuario?.departamento || usuario?.area_nombre || usuario?.nombre_area || usuario?.cargo || usuario?.car_nombre || '');
+    const area = formatArea(
+        usuario?.area ||
+        usuario?.dep_tag ||
+        usuario?.fun_area ||
+        usuario?.car_area ||
+        usuario?.dep_nombre ||
+        usuario?.dependencia ||
+        usuario?.departamento ||
+        usuario?.area_nombre ||
+        usuario?.nombre_area ||
+        usuario?.cargo ||
+        usuario?.car_nombre ||
+        ''
+    );
     const rol = usuario?.car_nombre || usuario?.car_tag || '';
-
     const nombreJefe = usuario?.jefe || '';
+
+    // Cargar consolidado de Yéminus
+    const cargarConsolidado = useCallback(async () => {
+        if (!funId && !contrato) return;
+
+        setLoadingConsolidado(true);
+        try {
+            const res = await getConsolidadoVacaciones({
+                contrato: contrato || undefined,
+                funId: funId || undefined,
+            });
+
+            const datos = res?.data ?? null;
+            setConsolidado(datos);
+            if (res?.fechaCorte) {
+                setCorteInfo(res.fechaCorte);
+            }
+        } catch (err) {
+            console.error('Error al cargar consolidado de vacaciones:', err);
+            setConsolidado(null);
+        } finally {
+            setLoadingConsolidado(false);
+        }
+    }, [funId, contrato]);
+
+    useEffect(() => {
+        if (open) {
+            cargarConsolidado();
+        }
+    }, [open, cargarConsolidado]);
 
     const resetForm = () => {
         setFechaInicio(null);
@@ -122,8 +194,7 @@ export default function SolicitarVacacionesDialog({
         if (!observaciones.trim()) {
             nuevos.observaciones = 'Debe escribir una observación.';
         } else if (observaciones.trim().length < 10) {
-            nuevos.observaciones =
-                'La observación debe tener al menos 10 caracteres.';
+            nuevos.observaciones = 'La observación debe tener al menos 10 caracteres.';
         }
 
         setErrores(nuevos);
@@ -134,16 +205,7 @@ export default function SolicitarVacacionesDialog({
         if (!validar()) return;
 
         const formData = new FormData();
-        formData.set(
-            'idUsu',
-            String(
-                usuario?.fun_id ??
-                usuario?.funId ??
-                usuario?.id ??
-                usuario?.id_usuario ??
-                ''
-            )
-        );
+        formData.set('idUsu', String(funId));
         formData.set('formInicioPermiso', dayjs(fechaInicio).format('YYYY-MM-DD'));
         formData.set('formInicioDias', String(Number(dias)));
         formData.set('observaciones', observaciones.trim());
@@ -162,6 +224,25 @@ export default function SolicitarVacacionesDialog({
         },
     });
 
+    // Días disponibles redondeados: >= 0.5 sube al siguiente entero, < 0.5 baja
+    const diasBrutos =
+        consolidado?.diasHabilesXDisfrutar !== undefined && consolidado?.diasHabilesXDisfrutar !== null
+            ? Number(consolidado.diasHabilesXDisfrutar)
+            : null;
+
+    const diasDisponibles = diasBrutos !== null ? Math.round(diasBrutos) : null;
+
+    const fechaCorteFormateada = corteInfo
+        ? dayjs(corteInfo).locale('es').format('D [de] MMMM [de] YYYY')
+        : null;
+
+    // Alerta si la cantidad solicitada supera los días disponibles
+    const numDiasSolicitados = Number(dias);
+    const estaAdelantando =
+        diasDisponibles !== null &&
+        numDiasSolicitados > 0 &&
+        numDiasSolicitados > diasDisponibles;
+
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
             <Dialog
@@ -172,7 +253,17 @@ export default function SolicitarVacacionesDialog({
                 maxWidth="md"
                 scroll="paper"
             >
-                <DialogTitle sx={{ pr: 6, fontWeight: 700, fontSize: '1.25rem' }}>
+                <DialogTitle
+                    sx={{
+                        pr: 6,
+                        fontWeight: 700,
+                        fontSize: '1.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                    }}
+                >
+                    <BeachAccessIcon color="primary" />
                     Solicitar Vacaciones
                     <IconButton
                         aria-label="Cerrar"
@@ -193,10 +284,12 @@ export default function SolicitarVacacionesDialog({
                     }}
                 >
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+                        {/* Alerta informativa sobre la aprobación */}
                         <Alert severity="info" sx={{ mb: 0 }}>
                             <Typography variant="body2">
                                 <strong>Importante:</strong> Las vacaciones están sujetas a
-                                aprobación por parte de su jefe de área (<strong>{nombreJefe}</strong>). Esta es únicamente una{' '}
+                                aprobación por parte de su jefe de área{' '}
+                                {nombreJefe ? <strong>({nombreJefe})</strong> : ''}. Esta es únicamente una{' '}
                                 <strong>solicitud</strong>, no una aprobación automática.
                             </Typography>
                         </Alert>
@@ -213,55 +306,111 @@ export default function SolicitarVacacionesDialog({
                             <TextField label="Área" value={area} fullWidth size="small" disabled />
                         </Box>
 
-                        {/* Fecha de inicio y días */}
-                        <Box
-                            sx={gridSx({
-                                xs: 'minmax(0, 1fr)',
-                                md: 'minmax(0, 1fr)',
-                            })}
-                        >
-                            <Box sx={cardSx}>
-                                <Typography variant="subtitle2" gutterBottom>
-                                    Detalles de Vacaciones
+                        {/* Detalles de la Solicitud con Días Disponibles integrados */}
+                        <Box sx={cardSx}>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    flexWrap: 'wrap',
+                                    gap: 1,
+                                    mb: 2,
+                                }}
+                            >
+                                <Typography variant="subtitle2" fontWeight={700}>
+                                    Detalles de la Solicitud
                                 </Typography>
-                                <Box sx={gridSx({ xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' })}>
-                                    <DatePicker
-                                        label="Fecha de inicio"
-                                        value={fechaInicio}
-                                        onChange={(value) => {
-                                            setFechaInicio(value);
-                                            setErrores((prev) => ({
-                                                ...prev,
-                                                fechaInicio: undefined,
-                                            }));
-                                        }}
-                                        minDate={dayjs().startOf('day')}
-                                        format="DD/MM/YYYY"
-                                        slotProps={pickerSlotProps('fechaInicio')}
-                                    />
-                                    <TextField
-                                        label="Días de vacaciones"
-                                        type="number"
-                                        value={dias}
-                                        onChange={(event) => {
-                                            setDias(event.target.value);
-                                            setErrores((prev) => ({
-                                                ...prev,
-                                                dias: undefined,
-                                            }));
-                                        }}
-                                        fullWidth
-                                        size="small"
-                                        required
-                                        inputProps={{ min: 1, max: MAX_DIAS }}
-                                        error={Boolean(errores.dias)}
-                                        helperText={
-                                            errores.dias ||
-                                            `El límite de días son ${MAX_DIAS}`
+
+                                {loadingConsolidado ? (
+                                    <Skeleton variant="rounded" width={170} height={28} />
+                                ) : diasDisponibles !== null ? (
+                                    <Tooltip
+                                        title={
+                                            fechaCorteFormateada
+                                                ? `Calculado al corte del ${fechaCorteFormateada} (${diasBrutos} días hábiles en Yéminus)`
+                                                : `Días hábiles calculados en Yéminus: ${diasBrutos}`
                                         }
-                                    />
-                                </Box>
+                                        arrow
+                                    >
+                                        <Chip
+                                            icon={<EventAvailableIcon fontSize="small" />}
+                                            label={`Disponibles: ${diasDisponibles} días`}
+                                            size="small"
+                                            color="primary"
+                                            variant="outlined"
+                                            sx={{
+                                                fontWeight: 700,
+                                                fontSize: '0.8125rem',
+                                                bgcolor: (t) => alpha(t.palette.primary.main, 0.08),
+                                                borderColor: (t) => alpha(t.palette.primary.main, 0.3),
+                                            }}
+                                        />
+                                    </Tooltip>
+                                ) : null}
                             </Box>
+
+                            <Box
+                                sx={gridSx({
+                                    xs: 'minmax(0, 1fr)',
+                                    sm: 'repeat(2, minmax(0, 1fr))',
+                                })}
+                            >
+                                <DatePicker
+                                    label="Fecha de inicio"
+                                    value={fechaInicio}
+                                    onChange={(value) => {
+                                        setFechaInicio(value);
+                                        setErrores((prev) => ({
+                                            ...prev,
+                                            fechaInicio: undefined,
+                                        }));
+                                    }}
+                                    minDate={dayjs().startOf('day')}
+                                    format="DD/MM/YYYY"
+                                    slotProps={pickerSlotProps('fechaInicio')}
+                                />
+                                <TextField
+                                    label="Días de vacaciones"
+                                    type="number"
+                                    value={dias}
+                                    onChange={(event) => {
+                                        setDias(event.target.value);
+                                        setErrores((prev) => ({
+                                            ...prev,
+                                            dias: undefined,
+                                        }));
+                                    }}
+                                    fullWidth
+                                    size="small"
+                                    required
+                                    inputProps={{ min: 1, max: MAX_DIAS }}
+                                    error={Boolean(errores.dias)}
+                                    helperText={
+                                        errores.dias ||
+                                        `Límite máximo: ${MAX_DIAS} días`
+                                    }
+                                />
+                            </Box>
+
+                            {/* Alerta si solicita más días de los disponibles */}
+                            {estaAdelantando && (
+                                <Alert
+                                    severity="info"
+                                    icon={<InfoOutlinedIcon fontSize="small" />}
+                                    sx={{
+                                        mt: 2,
+                                        py: 0.5,
+                                        px: 1.5,
+                                        fontSize: '0.8125rem',
+                                        alignItems: 'center',
+                                        '& .MuiAlert-message': { py: 0 },
+                                    }}
+                                >
+                                    Está solicitando <strong>{numDiasSolicitados} días</strong> ({diasDisponibles} disponibles).
+                                    Tenga en cuenta que estará <strong>adelantando vacaciones de un periodo próximo</strong>.
+                                </Alert>
+                            )}
                         </Box>
 
                         {/* Observaciones */}
@@ -278,7 +427,7 @@ export default function SolicitarVacacionesDialog({
                             fullWidth
                             size="small"
                             multiline
-                            minRows={5}
+                            minRows={4}
                             required
                             error={Boolean(errores.observaciones)}
                             helperText={errores.observaciones || ''}
@@ -300,7 +449,9 @@ export default function SolicitarVacacionesDialog({
                         startIcon={
                             submitting ? (
                                 <CircularProgress size={16} color="inherit" />
-                            ) : undefined
+                            ) : (
+                                <BeachAccessIcon fontSize="small" />
+                            )
                         }
                         disabled={submitting}
                         onClick={handleSubmit}

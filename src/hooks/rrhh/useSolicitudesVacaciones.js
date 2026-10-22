@@ -13,6 +13,7 @@ import {
     getVacacionesUsuario,
     modificarPdfVacaciones,
     getDatosPermiso,
+    getConsolidadoVacaciones,
 } from '@/api/rrhh/solicitudesVacaciones';
 
 /**
@@ -373,6 +374,14 @@ export function useSolicitudesVacaciones(funId, usuario) {
         };
     }, [funId, fetchNumeroVacaciones, fetchPersonal]);
 
+    /**
+     * Obtiene el consolidado de vacaciones de Yéminus (días por disfrutar, corte, periodos).
+     */
+    const fetchConsolidadoVacaciones = useCallback(async (params = {}) => {
+        const res = await getConsolidadoVacaciones(params);
+        return res?.data ?? null;
+    }, []);
+
     return {
         // Acceso
         puedeVerTodos,
@@ -390,6 +399,9 @@ export function useSolicitudesVacaciones(funId, usuario) {
         loadingVacacionesUsuario,
         vacacionesUsuarioError,
         fetchVacacionesUsuario,
+
+        // Consolidado Yéminus
+        fetchConsolidadoVacaciones,
 
         // Acciones de estado / creación
         cambiarEstado,

@@ -209,3 +209,23 @@ export async function getDatosPermiso(payload) {
     });
     return handleResponse(response);
 }
+
+/**
+ * Obtiene el consolidado de vacaciones de Yéminus (vacaciones pendientes,
+ * días por disfrutar, periodos, corte a fin de mes anterior).
+ * @param {{ contrato?: number|string, funId?: number|string, fechaCorte?: string }} [params]
+ */
+export async function getConsolidadoVacaciones(params = {}) {
+    const query = new URLSearchParams();
+    if (params.contrato) query.set('contrato', String(params.contrato));
+    if (params.funId) query.set('funId', String(params.funId));
+    if (params.fechaCorte) query.set('fechaCorte', params.fechaCorte);
+    const qs = query.toString();
+
+    const response = await fetch(`${BASE_API}/consolidado${qs ? `?${qs}` : ''}`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+    });
+    return handleResponse(response);
+}

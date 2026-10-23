@@ -43,6 +43,7 @@ export async function GET(request) {
                         Accept: 'application/json',
                     },
                     cache: 'no-store',
+                    signal: AbortSignal.timeout(4000),
                 });
                 if (meRes.ok) {
                     const meData = await meRes.json();
@@ -51,52 +52,51 @@ export async function GET(request) {
                     contrato = user?.useryem ?? user?.fun_empleado_geminus ?? user?.id_geminus ?? '';
                 }
             } catch (err) {
-                console.error('[Consolidado Vacaciones] Error obteniendo usuario actual:', err);
+                console.error('[Consolidado Vacaciones] Error obteniendo usuario actual:', err?.message);
             }
         }
 
         let consolidadoData = null;
 
-        // 1. Si tenemos contrato, consultar al gateway de Yéminus directamente
-        if (contrato) {
+        // 1. Consultar a través de dynamics-node (API_NODE), accesible tanto en producción como en desarrollo
+        const apiNodeBase = (process.env.API_NODE || 'https://dynamics.appceg.com:3010').replace(/\/+$/, '');
+        const queryParams = new URLSearchParams();
+        if (contrato) queryParams.set('contrato', String(contrato));
+        if (funId) queryParams.set('funId', String(funId));
+        if (fechaCorte) queryParams.set('fechaCorte', fechaCorte);
+
+        try {
+            const nodeResponse = await fetch(`${apiNodeBase}/api/users/vacations-consolidado?${queryParams.toString()}`, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                },
+                cache: 'no-store',
+                signal: AbortSignal.timeout(6000),
+            });
+
+            if (nodeResponse.ok) {
+                const json = await nodeResponse.json();
+                // Validar estrictamente que sea respuesta con datos reales de consolidado
+                if (json?.data && !Array.isArray(json.data) && json.data?.diasHabilesXDisfrutar !== undefined) {
+                    consolidadoData = json.data;
+                } else if (Array.isArray(json?.data) && json.data.length > 0 && json.data[0]?.diasHabilesXDisfrutar !== undefined) {
+                    consolidadoData = json.data[0];
+                } else if (Array.isArray(json?.datos) && json.datos.length > 0 && json.datos[0]?.diasHabilesXDisfrutar !== undefined) {
+                    consolidadoData = json.datos[0];
+                }
+            }
+        } catch (nodeErr) {
+            console.warn('[Consolidado Vacaciones] API_NODE error o timeout:', nodeErr?.message);
+        }
+
+        // 2. Fallback directo al gateway de Yéminus (funciona cuando se ejecuta en la red local de la empresa)
+        if (!consolidadoData && contrato) {
             try {
                 consolidadoData = await consultarYeminusDirecto(contrato, fechaCorte);
             } catch (yemErr) {
-                console.warn('[Consolidado Vacaciones] Gateway directo Yéminus reportó:', yemErr?.message);
-            }
-        }
-
-        // 2. Si no se pudo obtener directo o se necesita resolver por funId en backend
-        if (!consolidadoData) {
-            const apiNodeBase = (process.env.API_NODE || 'https://dynamics.appceg.com:3010').replace(/\/+$/, '');
-            const queryParams = new URLSearchParams();
-            if (contrato) queryParams.set('contrato', String(contrato));
-            if (funId) queryParams.set('funId', String(funId));
-            if (fechaCorte) queryParams.set('fechaCorte', fechaCorte);
-
-            try {
-                const nodeResponse = await fetch(`${apiNodeBase}/api/users/vacations-consolidado?${queryParams.toString()}`, {
-                    method: 'GET',
-                    headers: {
-                        Accept: 'application/json',
-                        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                    },
-                    cache: 'no-store',
-                });
-
-                if (nodeResponse.ok) {
-                    const json = await nodeResponse.json();
-                    // Validar estrictamente que sea respuesta con datos de vacaciones y no el fallback de usuarios
-                    if (json?.data && !Array.isArray(json.data) && json.data?.diasHabilesXDisfrutar !== undefined) {
-                        consolidadoData = json.data;
-                    } else if (Array.isArray(json?.data) && json.data.length > 0 && json.data[0]?.diasHabilesXDisfrutar !== undefined) {
-                        consolidadoData = json.data[0];
-                    } else if (Array.isArray(json?.datos) && json.datos.length > 0 && json.datos[0]?.diasHabilesXDisfrutar !== undefined) {
-                        consolidadoData = json.datos[0];
-                    }
-                }
-            } catch (nodeErr) {
-                console.warn('[Consolidado Vacaciones] API_NODE error:', nodeErr?.message);
+                console.warn('[Consolidado Vacaciones] Gateway directo Yéminus inaccesible:', yemErr?.message);
             }
         }
 
@@ -127,7 +127,7 @@ export async function GET(request) {
 }
 
 /**
- * Consulta directa al gateway de Yéminus con el payload oficial.
+ * Consulta directa al gateway de Yéminus con timeout corto para no colgar en entornos fuera de la red local.
  */
 async function consultarYeminusDirecto(contrato, fechaCorte) {
     const loginRes = await fetch('http://192.168.1.211/gateway/auth/login', {
@@ -135,6 +135,7 @@ async function consultarYeminusDirecto(contrato, fechaCorte) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: 'api', password: '123' }),
         cache: 'no-store',
+        signal: AbortSignal.timeout(2000),
     });
 
     if (!loginRes.ok) return null;
@@ -211,6 +212,7 @@ async function consultarYeminusDirecto(contrato, fechaCorte) {
         },
         body: JSON.stringify(payload),
         cache: 'no-store',
+        signal: AbortSignal.timeout(3000),
     });
 
     if (!res.ok) return null;

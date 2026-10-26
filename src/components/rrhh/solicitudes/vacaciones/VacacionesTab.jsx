@@ -62,6 +62,11 @@ export default function VacacionesTab({ funcionarioId, user }) {
         enviarCorreoRechazo,
         // Badge
         fetchNumeroVacaciones,
+        // Consolidado Yéminus precargado en memoria
+        consolidadoUsuario,
+        loadingConsolidadoUsuario,
+        corteConsolidado,
+        recargarConsolidadoUsuario,
     } = useSolicitudesVacaciones(funcionarioId, user);
 
     /* ── Estado local ── */
@@ -255,7 +260,11 @@ export default function VacacionesTab({ funcionarioId, user }) {
 
             setSolicitarOpen(false);
             notify('Solicitud de vacaciones enviada correctamente.');
-            await Promise.all([fetchNumeroVacaciones(), fetchPersonal(modoLista)]);
+            await Promise.all([
+                fetchNumeroVacaciones(),
+                fetchPersonal(modoLista),
+                recargarConsolidadoUsuario(),
+            ]);
         } catch (err) {
             notify(err?.message || 'No se ha podido enviar la solicitud.', 'error');
         } finally {
@@ -270,6 +279,7 @@ export default function VacacionesTab({ funcionarioId, user }) {
     const handleSync = () => {
         fetchPersonal(modoLista);
         fetchNumeroVacaciones();
+        recargarConsolidadoUsuario();
     };
 
     /* ── Render ── */
@@ -364,6 +374,9 @@ export default function VacacionesTab({ funcionarioId, user }) {
                 usuario={user}
                 onSubmit={handleSolicitarSubmit}
                 submitting={enviando}
+                consolidadoProp={consolidadoUsuario}
+                loadingConsolidadoProp={loadingConsolidadoUsuario}
+                corteInfoProp={corteConsolidado}
             />
 
             <PermisosVacacionesDialog

@@ -61,6 +61,9 @@ export default function SolicitarVacacionesDialog({
     usuario = {},
     onSubmit,
     submitting = false,
+    consolidadoProp = undefined,
+    loadingConsolidadoProp = false,
+    corteInfoProp = '',
 }) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -70,10 +73,15 @@ export default function SolicitarVacacionesDialog({
     const [observaciones, setObservaciones] = useState('');
     const [errores, setErrores] = useState({});
 
-    // Consolidado de vacaciones Yéminus
-    const [consolidado, setConsolidado] = useState(null);
-    const [loadingConsolidado, setLoadingConsolidado] = useState(false);
-    const [corteInfo, setCorteInfo] = useState('');
+    // Consolidado de vacaciones Yéminus (fallback si no se pasa precargado)
+    const [consolidadoInterno, setConsolidadoInterno] = useState(null);
+    const [loadingInterno, setLoadingInterno] = useState(false);
+    const [corteInterno, setCorteInterno] = useState('');
+
+    const isPropProvided = consolidadoProp !== undefined;
+    const consolidado = isPropProvided ? consolidadoProp : consolidadoInterno;
+    const loadingConsolidado = isPropProvided ? loadingConsolidadoProp : loadingInterno;
+    const corteInfo = isPropProvided ? (corteInfoProp || '') : corteInterno;
 
     const funId =
         usuario?.fun_id ??
@@ -134,11 +142,11 @@ export default function SolicitarVacacionesDialog({
     const rol = usuario?.car_nombre || usuario?.car_tag || '';
     const nombreJefe = usuario?.jefe || '';
 
-    // Cargar consolidado de Yéminus
+    // Cargar consolidado de Yéminus (fallback bajo demanda)
     const cargarConsolidado = useCallback(async () => {
         if (!funId && !contrato) return;
 
-        setLoadingConsolidado(true);
+        setLoadingInterno(true);
         try {
             const res = await getConsolidadoVacaciones({
                 contrato: contrato || undefined,
@@ -146,23 +154,24 @@ export default function SolicitarVacacionesDialog({
             });
 
             const datos = res?.data ?? null;
-            setConsolidado(datos);
+            setConsolidadoInterno(datos);
             if (res?.fechaCorte) {
-                setCorteInfo(res.fechaCorte);
+                setCorteInterno(res.fechaCorte);
             }
         } catch (err) {
             console.error('Error al cargar consolidado de vacaciones:', err);
-            setConsolidado(null);
+            setConsolidadoInterno(null);
         } finally {
-            setLoadingConsolidado(false);
+            setLoadingInterno(false);
         }
     }, [funId, contrato]);
 
     useEffect(() => {
-        if (open) {
+        // Solo cargamos internamente si open=true y NO fue provisto desde el componente padre
+        if (open && !isPropProvided) {
             cargarConsolidado();
         }
-    }, [open, cargarConsolidado]);
+    }, [open, isPropProvided, cargarConsolidado]);
 
     const resetForm = () => {
         setFechaInicio(null);

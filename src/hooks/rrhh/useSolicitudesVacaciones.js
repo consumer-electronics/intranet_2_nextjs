@@ -88,6 +88,11 @@ export function useSolicitudesVacaciones(funId, usuario) {
     // --- Badge de vacaciones pendientes ---
     const [numeroVacaciones, setNumeroVacaciones] = useState(0);
 
+    // --- Consolidado de vacaciones Yéminus del usuario autenticado (en memoria durante la estancia en la ruta) ---
+    const [consolidadoUsuario, setConsolidadoUsuario] = useState(null);
+    const [loadingConsolidadoUsuario, setLoadingConsolidadoUsuario] = useState(false);
+    const [corteConsolidado, setCorteConsolidado] = useState('');
+
     // --- Datos del usuario autenticado (para correo/PDF) ---
     const nombreUsuario =
         usuario?.nombre ??
@@ -357,13 +362,48 @@ export function useSolicitudesVacaciones(funId, usuario) {
         return enviarCorreoVacaciones({ accion, ...resto });
     }, []);
 
-    // Carga inicial: badge + lista "Personal a cargo"
+    /**
+     * Consulta y almacena en memoria el consolidado de vacaciones Yéminus del usuario autenticado.
+     */
+    const recargarConsolidadoUsuario = useCallback(async () => {
+        const contrato =
+            idYemUsuario ||
+            usuario?.contrato ||
+            usuario?.idUserYem ||
+            '';
+
+        if (!funId && !contrato) return null;
+
+        setLoadingConsolidadoUsuario(true);
+        try {
+            const res = await getConsolidadoVacaciones({
+                contrato: contrato || undefined,
+                funId: funId || undefined,
+            });
+            const datos = res?.data ?? null;
+            setConsolidadoUsuario(datos);
+            if (res?.fechaCorte) {
+                setCorteConsolidado(res.fechaCorte);
+            }
+            return datos;
+        } catch (err) {
+            console.error('Error al precargar consolidado de vacaciones:', err);
+            return null;
+        } finally {
+            setLoadingConsolidadoUsuario(false);
+        }
+    }, [funId, idYemUsuario, usuario?.contrato, usuario?.idUserYem]);
+
+    // Carga inicial: badge + lista "Personal a cargo" + PRECARGA consolidado Yéminus
     useEffect(() => {
         if (!funId) return undefined;
         let active = true;
 
         async function cargarInicial() {
-            await fetchNumeroVacaciones();
+            await Promise.allSettled([
+                fetchNumeroVacaciones(),
+                recargarConsolidadoUsuario(),
+            ]);
             if (active) await fetchPersonal('listaUsuario');
         }
 
@@ -372,10 +412,10 @@ export function useSolicitudesVacaciones(funId, usuario) {
         return () => {
             active = false;
         };
-    }, [funId, fetchNumeroVacaciones, fetchPersonal]);
+    }, [funId, fetchNumeroVacaciones, fetchPersonal, recargarConsolidadoUsuario]);
 
     /**
-     * Obtiene el consolidado de vacaciones de Yéminus (días por disfrutar, corte, periodos).
+     * Obtiene el consolidado de vacaciones de Yéminus bajo demanda para cualquier usuario/contrato.
      */
     const fetchConsolidadoVacaciones = useCallback(async (params = {}) => {
         const res = await getConsolidadoVacaciones(params);
@@ -400,7 +440,11 @@ export function useSolicitudesVacaciones(funId, usuario) {
         vacacionesUsuarioError,
         fetchVacacionesUsuario,
 
-        // Consolidado Yéminus
+        // Consolidado Yéminus (precargado y cacheado en memoria para la ruta actual)
+        consolidadoUsuario,
+        loadingConsolidadoUsuario,
+        corteConsolidado,
+        recargarConsolidadoUsuario,
         fetchConsolidadoVacaciones,
 
         // Acciones de estado / creación

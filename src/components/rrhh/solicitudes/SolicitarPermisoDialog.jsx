@@ -131,6 +131,131 @@ export default function SolicitarPermisoDialog({
         [motivo]
     );
 
+    const hoy = dayjs().startOf('day');
+
+    const minFechaFin = useMemo(() => {
+        const today = dayjs().startOf('day');
+        if (fechaInicio && dayjs(fechaInicio).isValid() && dayjs(fechaInicio).isAfter(today)) {
+            return dayjs(fechaInicio).startOf('day');
+        }
+        return today;
+    }, [fechaInicio]);
+
+    const validarFechaInicio = (val) => {
+        if (!val) return 'Seleccione fecha de inicio.';
+        const d = dayjs(val);
+        if (!d.isValid()) return 'Ingrese una fecha de inicio válida.';
+        if (d.startOf('day').isBefore(dayjs().startOf('day'))) {
+            return 'La fecha de inicio no puede ser anterior a la de hoy.';
+        }
+        return '';
+    };
+
+    const validarFechaFin = (val, inicioVal) => {
+        if (!val) return 'Seleccione fecha final.';
+        const d = dayjs(val);
+        if (!d.isValid()) return 'Ingrese una fecha final válida.';
+        if (d.startOf('day').isBefore(dayjs().startOf('day'))) {
+            return 'La fecha final no puede ser anterior a la de hoy.';
+        }
+        if (inicioVal && dayjs(inicioVal).isValid()) {
+            if (d.startOf('day').isBefore(dayjs(inicioVal).startOf('day'))) {
+                return 'La fecha final no puede ser anterior a la fecha de inicio.';
+            }
+        }
+        return '';
+    };
+
+    const handleFechaInicioChange = (v) => {
+        setFechaInicio(v);
+        if (!v) {
+            setErrores((prev) => ({ ...prev, fechaInicio: undefined }));
+            return;
+        }
+        if (dayjs(v).isValid()) {
+            if (dayjs(v).startOf('day').isBefore(dayjs().startOf('day'))) {
+                setErrores((prev) => ({
+                    ...prev,
+                    fechaInicio: 'La fecha de inicio no puede ser anterior a la de hoy.',
+                }));
+            } else {
+                setErrores((prev) => ({ ...prev, fechaInicio: undefined }));
+                if (
+                    fechaFin &&
+                    dayjs(fechaFin).isValid() &&
+                    dayjs(fechaFin).startOf('day').isBefore(dayjs(v).startOf('day'))
+                ) {
+                    setFechaFin(null);
+                }
+            }
+        }
+    };
+
+    const handleFechaFinChange = (v) => {
+        setFechaFin(v);
+        if (!v) {
+            setErrores((prev) => ({ ...prev, fechaFin: undefined }));
+            return;
+        }
+        if (dayjs(v).isValid()) {
+            const today = dayjs().startOf('day');
+            if (dayjs(v).startOf('day').isBefore(today)) {
+                setErrores((prev) => ({
+                    ...prev,
+                    fechaFin: 'La fecha final no puede ser anterior a la de hoy.',
+                }));
+            } else if (
+                fechaInicio &&
+                dayjs(fechaInicio).isValid() &&
+                dayjs(v).startOf('day').isBefore(dayjs(fechaInicio).startOf('day'))
+            ) {
+                setErrores((prev) => ({
+                    ...prev,
+                    fechaFin: 'La fecha final no puede ser anterior a la fecha de inicio.',
+                }));
+            } else {
+                setErrores((prev) => ({ ...prev, fechaFin: undefined }));
+            }
+        }
+    };
+
+    const handleFechaInicioError = (reason) => {
+        if (reason === 'minDate') {
+            setErrores((prev) => ({
+                ...prev,
+                fechaInicio: 'La fecha de inicio no puede ser anterior a la de hoy.',
+            }));
+        } else if (
+            !reason &&
+            errores.fechaInicio === 'La fecha de inicio no puede ser anterior a la de hoy.'
+        ) {
+            setErrores((prev) => ({ ...prev, fechaInicio: undefined }));
+        }
+    };
+
+    const handleFechaFinError = (reason) => {
+        if (reason === 'minDate') {
+            const today = dayjs().startOf('day');
+            const esMayorQueHoy =
+                fechaInicio &&
+                dayjs(fechaInicio).isValid() &&
+                dayjs(fechaInicio).isAfter(today);
+            setErrores((prev) => ({
+                ...prev,
+                fechaFin: esMayorQueHoy
+                    ? 'La fecha final no puede ser anterior a la fecha de inicio.'
+                    : 'La fecha final no puede ser anterior a la de hoy.',
+            }));
+        } else if (
+            !reason &&
+            (errores.fechaFin === 'La fecha final no puede ser anterior a la de hoy.' ||
+                errores.fechaFin ===
+                    'La fecha final no puede ser anterior a la fecha de inicio.')
+        ) {
+            setErrores((prev) => ({ ...prev, fechaFin: undefined }));
+        }
+    };
+
     const resetForm = () => {
         setMotivo('');
         setReposicion('');
@@ -171,18 +296,40 @@ export default function SolicitarPermisoDialog({
             nuevos.reposicion = 'Seleccione una opción.';
         }
 
-        if (!fechaInicio) nuevos.fechaInicio = 'Seleccione fecha de inicio.';
-        if (!horaInicio) nuevos.horaInicio = 'Seleccione hora de inicio.';
-        if (!fechaFin) nuevos.fechaFin = 'Seleccione fecha final.';
-        if (!horaFin) nuevos.horaFin = 'Seleccione hora final.';
+        const errorFechaInicio = validarFechaInicio(fechaInicio);
+        if (errorFechaInicio) nuevos.fechaInicio = errorFechaInicio;
 
-        if (fechaInicio && horaInicio && fechaFin && horaFin) {
+        const errorFechaFin = validarFechaFin(fechaFin, fechaInicio);
+        if (errorFechaFin) nuevos.fechaFin = errorFechaFin;
+
+        if (!horaInicio) {
+            nuevos.horaInicio = 'Seleccione hora de inicio.';
+        } else if (!dayjs(horaInicio).isValid()) {
+            nuevos.horaInicio = 'Ingrese una hora de inicio válida.';
+        }
+
+        if (!horaFin) {
+            nuevos.horaFin = 'Seleccione hora final.';
+        } else if (!dayjs(horaFin).isValid()) {
+            nuevos.horaFin = 'Ingrese una hora final válida.';
+        }
+
+        if (
+            !errorFechaInicio &&
+            !errorFechaFin &&
+            horaInicio &&
+            dayjs(horaInicio).isValid() &&
+            horaFin &&
+            dayjs(horaFin).isValid()
+        ) {
             const inicio = dayjs(fechaInicio)
                 .hour(dayjs(horaInicio).hour())
-                .minute(dayjs(horaInicio).minute());
+                .minute(dayjs(horaInicio).minute())
+                .second(0);
             const fin = dayjs(fechaFin)
                 .hour(dayjs(horaFin).hour())
-                .minute(dayjs(horaFin).minute());
+                .minute(dayjs(horaFin).minute())
+                .second(0);
             if (!fin.isAfter(inicio)) {
                 nuevos.horaFin = 'La hora final debe ser mayor a la inicial.';
             }
@@ -232,12 +379,13 @@ export default function SolicitarPermisoDialog({
         onSubmit(formData);
     };
 
-    const pickerSlotProps = (key) => ({
+    const pickerSlotProps = (key, extraProps = {}) => ({
         textField: {
             size: 'small',
             fullWidth: true,
             error: Boolean(errores[key]),
             helperText: errores[key] || '',
+            ...extraProps,
         },
     });
 
@@ -300,7 +448,7 @@ export default function SolicitarPermisoDialog({
                                 </Typography>
                                 <RadioGroup row value={motivo} onChange={handleMotivoChange}>
                                     {MOTIVOS.map((m) => (
-                                        <FormControlLabel
+                                       <FormControlLabel
                                             key={m.value}
                                             value={m.value}
                                             control={<Radio size="small" />}
@@ -357,12 +505,19 @@ export default function SolicitarPermisoDialog({
                                     <DatePicker
                                         label="Fecha inicio *"
                                         value={fechaInicio}
-                                        onChange={(v) => {
-                                            setFechaInicio(v);
-                                            setErrores((prev) => ({ ...prev, fechaInicio: undefined }));
-                                        }}
+                                        onChange={handleFechaInicioChange}
+                                        onError={handleFechaInicioError}
+                                        minDate={hoy}
+                                        disablePast
                                         format="DD/MM/YYYY"
-                                        slotProps={pickerSlotProps('fechaInicio')}
+                                        slotProps={pickerSlotProps('fechaInicio', {
+                                            onBlur: () => {
+                                                const err = validarFechaInicio(fechaInicio);
+                                                if (err) {
+                                                    setErrores((prev) => ({ ...prev, fechaInicio: err }));
+                                                }
+                                            },
+                                        })}
                                     />
                                     <TimePicker
                                         label="Hora de salida *"
@@ -386,12 +541,19 @@ export default function SolicitarPermisoDialog({
                                     <DatePicker
                                         label="Fecha fin *"
                                         value={fechaFin}
-                                        onChange={(v) => {
-                                            setFechaFin(v);
-                                            setErrores((prev) => ({ ...prev, fechaFin: undefined }));
-                                        }}
+                                        onChange={handleFechaFinChange}
+                                        onError={handleFechaFinError}
+                                        minDate={minFechaFin}
+                                        disablePast
                                         format="DD/MM/YYYY"
-                                        slotProps={pickerSlotProps('fechaFin')}
+                                        slotProps={pickerSlotProps('fechaFin', {
+                                            onBlur: () => {
+                                                const err = validarFechaFin(fechaFin, fechaInicio);
+                                                if (err) {
+                                                    setErrores((prev) => ({ ...prev, fechaFin: err }));
+                                                }
+                                            },
+                                        })}
                                     />
                                     <TimePicker
                                         label="Hora fin permiso *"
@@ -407,6 +569,7 @@ export default function SolicitarPermisoDialog({
                                 </Box>
                             </Box>
                         </Box>
+
 
                         {/* Archivo (fila propia, ancho completo) */}
                         <TextField

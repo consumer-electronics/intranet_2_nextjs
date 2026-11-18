@@ -57,12 +57,16 @@ export default function ReservarSalaDialog({
 
         setError('');
 
-        await onSubmit({
-            sala: seleccion.sala,
-            fechaInicio: formatearFecha(seleccion.fechaInicio),
-            fechaFinal: formatearFecha(seleccion.fechaFinal),
-            descripcion: descripcion.trim(),
-        });
+        try {
+            await onSubmit({
+                sala: seleccion.sala,
+                fechaInicio: formatearFecha(seleccion.fechaInicio),
+                fechaFinal: formatearFecha(seleccion.fechaFinal),
+                descripcion: descripcion.trim(),
+            });
+        } catch (err) {
+            setError(err.message || 'No se pudo guardar la reservación.');
+        }
     };
 
     const salaNombre = obtenerNombreSala(seleccion?.sala);

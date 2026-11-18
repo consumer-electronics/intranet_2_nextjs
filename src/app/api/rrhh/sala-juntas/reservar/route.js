@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-
 import { getSession } from '@/lib/session';
+import { verificarDisponibilidadSala } from '@/lib/salaJuntasDisponibilidad';
 
 const BACKEND_BASE_URL = (
     process.env.URL_DYNAMICS
@@ -87,6 +86,25 @@ export async function POST(request) {
                         'No está configurada la variable URL_DYNAMICS.',
                 },
                 { status: 500 },
+            );
+        }
+
+        // 1. Validar disponibilidad estricta antes de registrar la reservación
+        const disp = await verificarDisponibilidadSala({
+            inicio: fechaInicio,
+            fin: fechaFinal,
+            sala,
+        });
+
+        if (!disp.disponible || disp.cantidad > 0) {
+            return NextResponse.json(
+                {
+                    error:
+                        'La sala ya no se encuentra disponible en el horario seleccionado.',
+                    message:
+                        'La sala ya no se encuentra disponible en el horario seleccionado.',
+                },
+                { status: 409 },
             );
         }
 

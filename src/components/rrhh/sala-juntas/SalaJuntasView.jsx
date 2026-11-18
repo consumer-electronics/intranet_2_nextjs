@@ -120,8 +120,8 @@ export default function SalaJuntasView() {
                     throw new Error('Debe seleccionar una sala antes de validar disponibilidad.');
                 }
 
-                const inicio = new Date(selection.start.getTime() + 60 * 1000);
-                const fin = new Date(selection.end.getTime() - 60 * 1000);
+                const inicio = selection.start;
+                const fin = selection.end;
 
                 const data = await comprobarDisponibilidad({
                     inicio: formatearFechaBackend(inicio),
@@ -130,8 +130,9 @@ export default function SalaJuntasView() {
                 });
 
                 const cantidad = Number(data?.cantidad_registros ?? data?.cantidad ?? 0);
+                const disponible = cantidad === 0 && data?.disponible !== false;
 
-                if (cantidad === 0) {
+                if (disponible) {
                     setSeleccion({
                         sala,
                         fechaInicio: selection.start,
@@ -144,6 +145,7 @@ export default function SalaJuntasView() {
                         `La sala ya está reservada entre ${formatearHora(selection.start)} y ${formatearHora(selection.end)}.`,
                         'error',
                     );
+                    cargarReservaciones(rangoActivoRef.current ?? undefined).catch(() => {});
                 }
             } catch (err) {
                 mostrarNotificacion(
@@ -152,7 +154,7 @@ export default function SalaJuntasView() {
                 );
             }
         },
-        [comprobarDisponibilidad, mostrarNotificacion],
+        [cargarReservaciones, comprobarDisponibilidad, mostrarNotificacion],
     );
 
     const handleEventoClick = useCallback(
@@ -239,6 +241,12 @@ export default function SalaJuntasView() {
                     err.message || 'Error al guardar la reservación.',
                     'error',
                 );
+
+                if (err.codigo === 'SALA_NO_DISPONIBLE') {
+                    setDialogReservaOpen(false);
+                    setSeleccion(null);
+                }
+
                 throw err;
             }
         },

@@ -74,7 +74,7 @@ export default function useSalaJuntas() {
     );
 
     /**
-     * Crea una nueva reservación.
+     * Crea una nueva reservación previa validación de disponibilidad.
      * @param {object} rango - Rango activo del calendario { start, end } para recargar.
      */
     const guardarReservacion = useCallback(
@@ -93,6 +93,30 @@ export default function useSalaJuntas() {
             setError('');
 
             try {
+                // 1. Validar disponibilidad antes de crear para evitar colisiones
+                const startDate = parsearFecha(fechaInicio);
+                const endDate = parsearFecha(fechaFinal);
+
+                const disp = await validarDisponibilidad({
+                    inicio: formatearFechaBackend(startDate),
+                    fin: formatearFechaBackend(endDate),
+                    sala,
+                });
+
+                const cantidad = Number(
+                    disp?.cantidad_registros ?? disp?.cantidad ?? 0,
+                );
+
+                if (cantidad > 0 || disp?.disponible === false) {
+                    await cargarReservaciones(_rango ?? undefined);
+                    const errorDisp = new Error(
+                        'La sala ya no se encuentra disponible en el horario seleccionado.',
+                    );
+                    errorDisp.codigo = 'SALA_NO_DISPONIBLE';
+                    throw errorDisp;
+                }
+
+                // 2. Si está disponible, proceder a crear la reservación
                 const data = await crearReservacion({
                     sala,
                     fechaInicio,
@@ -107,8 +131,18 @@ export default function useSalaJuntas() {
                 return data;
             } catch (err) {
                 console.error('Error creando reservación:', err);
-                setError('No se pudo guardar la reservación.');
-                throw err;
+                const mensaje =
+                    err?.payload?.message ||
+                    err?.payload?.error ||
+                    err.message ||
+                    'No se pudo guardar la reservación.';
+                setError(mensaje);
+                await cargarReservaciones(_rango ?? undefined).catch(() => {});
+                const errorFinal = new Error(mensaje);
+                if (err?.status === 409 || err?.codigo === 'SALA_NO_DISPONIBLE') {
+                    errorFinal.codigo = 'SALA_NO_DISPONIBLE';
+                }
+                throw errorFinal;
             } finally {
                 setGuardando(false);
             }
@@ -189,4 +223,35 @@ export default function useSalaJuntas() {
         borrarReservacion,
         comprobarPermisoEliminar,
     };
+}
+
+function parsearFecha(valor) {
+    if (!valor) return new Date();
+    if (valor instanceof Date) return valor;
+    if (typeof valor === 'string') {
+        const str = valor.trim();
+        const match = str.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+        if (match) {
+            return new Date(
+                Number(match[1]),
+                Number(match[2]) - 1,
+                Number(match[3]),
+                Number(match[4]),
+                Number(match[5]),
+                Number(match[6] || 0),
+            );
+        }
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) return d;
+    }
+    return new Date(valor);
+}
+
+function formatearFechaBackend(date) {
+    const pad = (value) => String(value).padStart(2, '0');
+
+    return (
+        [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join('-') +
+        ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+    );
 }

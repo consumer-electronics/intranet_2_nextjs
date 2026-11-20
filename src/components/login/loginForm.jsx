@@ -297,6 +297,7 @@ function LoginForm() {
                 theme={mode === 'dark' ? 'filled_black' : 'outline'}
                 size="large"
                 locale="es"
+                auto_select={true}
               />
             </Box>
           </Box>

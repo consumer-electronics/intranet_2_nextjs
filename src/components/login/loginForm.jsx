@@ -298,6 +298,7 @@ function LoginForm() {
                 size="large"
                 locale="es"
                 auto_select={true}
+                useOneTap={true}
               />
             </Box>
           </Box>

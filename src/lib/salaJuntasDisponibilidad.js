@@ -34,11 +34,35 @@ export function formatearFechaBackend(date) {
     );
 }
 
+function extraerEventos(text) {
+    if (!text || typeof text !== 'string') return [];
+    const trimmed = text.trim();
+    try {
+        const parsed = JSON.parse(trimmed);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        const match = trimmed.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
+        if (match && match[1]) {
+            try {
+                const parsed = JSON.parse(match[1]);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch {
+                return [];
+            }
+        }
+    }
+    return [];
+}
+
 /**
- * Verifica si una sala está disponible en el rango de horario indicado.
- * Consulta las reservaciones activas del backend Dynamics y evalúa cualquier
- * solapamiento de intervalos: (resStart < reqEnd && resEnd > reqStart).
+ * Verifica si una sala específica está disponible en el rango de horario indicado.
+ * Consulta las reservaciones reales del backend Dynamics y evalúa el solapamiento
+ * estricto de intervalos: (resStart < reqEnd && resEnd > reqStart) SOLO para la sala consultada.
  *
+ * @param {object} params
+ * @param {string|Date} params.inicio - Fecha y hora de inicio de la reservación
+ * @param {string|Date} params.fin - Fecha y hora de fin de la reservación
+ * @param {string|number} params.sala - Identificador de la sala (ej: '1' para Sala 1, '3' para ShowRoom)
  * @returns {Promise<{ disponible: boolean, cantidad: number, conflicto?: object }>}
  */
 export async function verificarDisponibilidadSala({ inicio, fin, sala }) {
@@ -61,14 +85,13 @@ export async function verificarDisponibilidadSala({ inicio, fin, sala }) {
     }
 
     const pad = (v) => String(v).padStart(2, '0');
-    // Consultar rango amplio alrededor del día solicitado
+    // Consultar rango amplio alrededor del día solicitado (1 día antes y 1 día después)
     const diaAntes = new Date(reqStart - 24 * 60 * 60 * 1000);
     const diaDespues = new Date(reqEnd + 24 * 60 * 60 * 1000);
 
     const startQuery = `${diaAntes.getFullYear()}-${pad(diaAntes.getMonth() + 1)}-${pad(diaAntes.getDate())}T00:00:00-05:00`;
     const endQuery = `${diaDespues.getFullYear()}-${pad(diaDespues.getMonth() + 1)}-${pad(diaDespues.getDate())}T23:59:59-05:00`;
 
-    // 1. Consultar reservaciones existentes en el backend
     try {
         const paramsReservas = new URLSearchParams({
             accion: 'reservaciones',
@@ -86,27 +109,33 @@ export async function verificarDisponibilidadSala({ inicio, fin, sala }) {
 
         if (resReservas.ok) {
             const text = await resReservas.text();
-            let eventos = [];
-            try {
-                const match = text.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
-                if (match && match[1]) {
-                    eventos = JSON.parse(match[1]);
-                }
-            } catch {
-                eventos = [];
-            }
+            const eventos = extraerEventos(text);
 
             if (Array.isArray(eventos)) {
                 const conflicto = eventos.find((ev) => {
-                    const evSala = ev.resourceId ?? ev.sj_sala ?? ev.sala;
-                    if (String(evSala) !== String(sala)) return false;
+                    const evSala =
+                        ev.resourceId ??
+                        ev.resource ??
+                        ev.sj_sala ??
+                        ev.sala ??
+                        ev.extendedProps?.resourceId ??
+                        ev.extendedProps?.resource ??
+                        ev.extendedProps?.sj_sala ??
+                        ev.extendedProps?.sala;
+
+                    // Si no coincide la sala, NO es conflicto (separa estrictamente Sala 1 de ShowRoom)
+                    if (String(evSala).trim() !== String(sala).trim()) {
+                        return false;
+                    }
 
                     const evStart = parseDateSafe(ev.start ?? ev.sj_inicio)?.getTime();
                     const evEnd = parseDateSafe(ev.end ?? ev.sj_fin)?.getTime();
 
                     if (!evStart || !evEnd) return false;
 
-                    // Traslape estricto: empieza antes del fin solicitado Y termina después del inicio solicitado
+                    // Traslape estricto: empieza estrictamente antes de que termine la solicitada
+                    // Y termina estrictamente después de que empiece la solicitada.
+                    // Reuniones contiguas (ej: 09:00-10:00 y 10:00-11:00) NO se traslapan.
                     return evStart < reqEnd && evEnd > reqStart;
                 });
 
@@ -120,40 +149,7 @@ export async function verificarDisponibilidadSala({ inicio, fin, sala }) {
             }
         }
     } catch (err) {
-        console.error('Error consultando reservaciones para validar:', err);
-    }
-
-    // 2. Consulta adicional contra el endpoint legacy validar
-    try {
-        const paramsValidar = new URLSearchParams({
-            accion: 'validar',
-            inicio: formatearFechaBackend(startDate),
-            fin: formatearFechaBackend(endDate),
-            sala: String(sala),
-        });
-
-        const resValidar = await fetch(
-            `${LEGACY_SALA_JUNTAS_URL}?${paramsValidar.toString()}`,
-            {
-                method: 'GET',
-                cache: 'no-store',
-            }
-        );
-
-        if (resValidar.ok) {
-            const dataValidar = await resValidar.json().catch(() => null);
-            const cantidad = Number(
-                dataValidar?.cantidad_registros ?? dataValidar?.cantidad ?? 0
-            );
-            if (cantidad > 0) {
-                return {
-                    disponible: false,
-                    cantidad,
-                };
-            }
-        }
-    } catch (err) {
-        console.error('Error consultando legacy validar:', err);
+        console.error('Error consultando reservaciones para validar disponibilidad:', err);
     }
 
     return {
@@ -161,4 +157,3 @@ export async function verificarDisponibilidadSala({ inicio, fin, sala }) {
         cantidad: 0,
     };
 }
-

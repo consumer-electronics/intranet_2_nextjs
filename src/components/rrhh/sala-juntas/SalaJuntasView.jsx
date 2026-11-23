@@ -141,8 +141,9 @@ export default function SalaJuntasView() {
 
                     setDialogReservaOpen(true);
                 } else {
+                    const nombreSala = obtenerNombreSala(sala);
                     mostrarNotificacion(
-                        `La sala ya está reservada entre ${formatearHora(selection.start)} y ${formatearHora(selection.end)}.`,
+                        `La ${nombreSala} ya está reservada entre ${formatearHora(selection.start)} y ${formatearHora(selection.end)}.`,
                         'error',
                     );
                     cargarReservaciones(rangoActivoRef.current ?? undefined).catch(() => {});
@@ -469,4 +470,13 @@ function obtenerUsuarioId(usuarioActual) {
         usuarioActual?.idUsuario ??
         null
     );
+}
+
+function obtenerNombreSala(id) {
+    const salas = {
+        '1': 'Sala 1',
+        '3': 'ShowRoom',
+    };
+
+    return salas[String(id)] || `Sala ${id ?? ''}`;
 }

@@ -55,14 +55,15 @@ export async function getMarcacionesBiometrico({ idUsuario, inicio, final }) {
 }
 
 /**
- * Dispara la sincronización del dispositivo biométrico (ZKLib).
- * @returns {Promise<{ data: { ok: boolean, message: string } }>}
+ * Dispara la sincronización con Geovictoria.
+ * @param {{ tipo?: 'persona'|'area', inicio?: string, final?: string }} [params]
+ * @returns {Promise<{ data: { ok: boolean, message: string, marcasNuevas?: number } }>}
  */
-export async function sincronizarBiometrico() {
+export async function sincronizarBiometrico({ tipo = 'persona', inicio, final } = {}) {
     const response = await fetch(`${BASE_API}/sincronizar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ tipo, inicio, final }),
     });
     return handleResponse(response);
 }

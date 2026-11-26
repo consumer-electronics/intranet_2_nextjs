@@ -2,55 +2,41 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-const LEGACY_BASE_URL = process.env.URL_DYNAMICS;
-const LEGACY_ENDPOINT = `${LEGACY_BASE_URL.replace(/\/+$/, '')}/app/funciones.php`;
-
-/**
- * Verifica si el usuario autenticado tiene el permiso indicado
- * (biometrico_todos o biometrico_areas) para mostrar las pestañas
- * "Todos" y "Mi Área" respectivamente.
- *
- * El body debe incluir: { mod_nombre: 'biometrico_todos' | 'biometrico_areas' }
- */
 export async function POST(request) {
     try {
+        const authToken = (request.headers.get('cookie') || '').match(/access_token=([^;]+)/)?.[1];
+        const apiNodeUrl = (process.env.API_NODE || '').replace(/\/+$/, '');
         const body = await request.json().catch(() => ({}));
         const modNombre = body.mod_nombre;
-        const funId = body.fun_id ?? body.funId ?? body.id ?? body.userId ?? '';
+        const funId = body.fun_id ?? body.funId ?? body.id ?? body.userId;
 
         if (!modNombre) {
-            return NextResponse.json(
-                { message: 'Falta el nombre del permiso' },
-                { status: 400 }
-            );
+            return NextResponse.json({ message: 'Falta el nombre del permiso' }, { status: 400 });
+        }
+        if (!authToken || !apiNodeUrl || !funId) {
+            return NextResponse.json({ message: 'No autenticado' }, { status: 401 });
         }
 
-        const formData = new URLSearchParams();
-        formData.set('ejecutar_accion', 'permiso_fun_app');
-        formData.set('mod_tipo', 'intranet');
-        formData.set('fun_id', String(funId ?? ''));
-        formData.set('mod_nombre', modNombre);
-
-        const legacyResponse = await fetch(LEGACY_ENDPOINT, {
+        const nodeResponse = await fetch(`${apiNodeUrl}/api/permissions/user`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                Authorization: `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
                 Accept: 'application/json',
             },
-            body: formData,
+            body: JSON.stringify({ userId: funId, listModules: [modNombre] }),
             cache: 'no-store',
         });
 
-        const text = await legacyResponse.text();
-        let data;
-
-        try {
-            data = JSON.parse(text);
-        } catch {
-            data = text;
+        const nodeData = await nodeResponse.json().catch(() => ({}));
+        if (!nodeResponse.ok) {
+            return NextResponse.json(
+                { message: nodeData?.message || nodeData?.msg || 'No ha validado el permiso' },
+                { status: nodeResponse.status }
+            );
         }
 
-        return NextResponse.json(data, { status: legacyResponse.status });
+        return NextResponse.json(nodeData?.data || []);
     } catch (error) {
         console.error('[POST /api/rrhh/biometrico/permiso]', error);
         return NextResponse.json(

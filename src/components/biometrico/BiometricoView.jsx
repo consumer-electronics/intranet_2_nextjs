@@ -30,6 +30,7 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -126,6 +127,11 @@ export default function BiometricoView() {
     // Estado local para el botón "Exportar Excel" de la barra principal
     const [exportingMain, setExportingMain] = useState(false);
     const [exportingModal, setExportingModal] = useState(false);
+
+    // Límites de rango de fechas permitidos por política de Geovictoria:
+    // Máximo 2 meses hacia atrás y nunca posterior al día de hoy.
+    const minAllowedDate = useMemo(() => dayjs().subtract(2, 'month').startOf('day'), []);
+    const maxAllowedDate = useMemo(() => dayjs().endOf('day'), []);
 
     const {
         tab,
@@ -345,6 +351,8 @@ export default function BiometricoView() {
                                 value={dateRange[0]}
                                 onChange={(value) => setDateRange([value, dateRange[1]])}
                                 format="DD/MM/YYYY"
+                                minDate={minAllowedDate}
+                                maxDate={maxAllowedDate}
                                 slotProps={{ textField: { size: 'small' } }}
                                 sx={compactPickerSx}
                             />
@@ -353,6 +361,8 @@ export default function BiometricoView() {
                                 value={dateRange[1]}
                                 onChange={(value) => setDateRange([dateRange[0], value])}
                                 format="DD/MM/YYYY"
+                                minDate={minAllowedDate}
+                                maxDate={maxAllowedDate}
                                 slotProps={{ textField: { size: 'small' } }}
                                 sx={compactPickerSx}
                             />
@@ -368,17 +378,30 @@ export default function BiometricoView() {
                                 Consultar
                             </Button>
 
-                            <Button
-                                variant="outlined"
-                                color="primary"
-                                size="small"
-                                startIcon={<SyncIcon />}
-                                onClick={sincronizar}
-                                disabled={sincronizando}
-                                sx={{ height: 40 }}
-                            >
-                                {sincronizando ? 'Sincronizando…' : 'Sincronizar'}
-                            </Button>
+                            {/* El botón de sincronizar solo se habilita para persona y área para no saturar Geovictoria */}
+                            {tab !== TAB_TODOS && (
+                                <Tooltip
+                                    title={
+                                        tab === TAB_MARCACIONES
+                                            ? 'Sincronizar mis marcaciones con Geovictoria'
+                                            : 'Sincronizar marcaciones del área con Geovictoria'
+                                    }
+                                >
+                                    <span>
+                                        <Button
+                                            variant="outlined"
+                                            color="primary"
+                                            size="small"
+                                            startIcon={<SyncIcon />}
+                                            onClick={sincronizar}
+                                            disabled={sincronizando}
+                                            sx={{ height: 40 }}
+                                        >
+                                            {sincronizando ? 'Sincronizando…' : 'Sincronizar'}
+                                        </Button>
+                                    </span>
+                                </Tooltip>
+                            )}
 
                             {/* Separador visual */}
                             <Divider orientation="vertical" flexItem sx={{ mx: 0.5, display: { xs: 'none', sm: 'block' } }} />

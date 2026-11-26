@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -105,6 +105,8 @@ const BiometricoTable = forwardRef(function BiometricoTable(
     const theme = useTheme();
     const apiRef = useGridApiRef();
     const [exporting, setExporting] = useState(false);
+    const [filterModel, setFilterModel] = useState({ items: [], quickFilterValues: [] });
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
 
     /**
      * Descarga un archivo .xlsx respetando el orden y los filtros actuales
@@ -167,6 +169,12 @@ const BiometricoTable = forwardRef(function BiometricoTable(
         [triggerExport, exporting]
     );
 
+    // Limpia filtros y paginación obsoletos al cambiar los resultados
+    useEffect(() => {
+        setFilterModel({ items: [], quickFilterValues: [] });
+        setPaginationModel((current) => ({ ...current, page: 0 }));
+    }, [rows]);
+
     return (
         <Box
             sx={{
@@ -203,9 +211,18 @@ const BiometricoTable = forwardRef(function BiometricoTable(
                 rows={rows}
                 columns={columns}
                 loading={loading}
+                filterMode="client"
+                filterModel={filterModel}
+                onFilterModelChange={(model) => {
+                    setFilterModel(model);
+                    setPaginationModel((current) => ({ ...current, page: 0 }));
+                }}
+                paginationMode="client"
+                paginationModel={paginationModel}
+                onPaginationModelChange={(model) => setPaginationModel(model)}
                 onRowClick={onRowClick ? (params) => onRowClick(params.row) : undefined}
                 getRowId={(row) =>
-                    row.id ?? row.idUsuario ?? `${row.nombre}-${row.fecha}-${row.hora}`
+                    row.id ?? `biometrico-${row.idUsuario}-${row.nombre}-${row.fecha}-${row.hora}`
                 }
                 autoHeight
                 getRowHeight={autoRowHeight ? () => 'auto' : undefined}
@@ -213,7 +230,6 @@ const BiometricoTable = forwardRef(function BiometricoTable(
                 disableRowSelectionOnClick
                 localeText={SPANISH_LOCALE}
                 initialState={{
-                    pagination: { paginationModel: { pageSize: 10 } },
                     sorting: {
                         sortModel: [{ field: 'fecha', sort: 'asc' }],
                     },

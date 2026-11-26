@@ -309,24 +309,51 @@ export function useBiometrico(funId) {
     }, []);
 
     /**
-     * Dispara la sincronización del dispositivo biométrico.
+     * Dispara la sincronización con Geovictoria.
+     * - Si tab === 'area' -> sincroniza los empleados del área.
+     * - Si tab === 'marcaciones' -> sincroniza individualmente ('persona').
      * Al terminar invalida toda la caché y recarga la pestaña activa.
      */
     const sincronizar = useCallback(async () => {
+        const tipo = tab === TAB_AREA ? 'area' : 'persona';
+
+        if (!inicio || !final) {
+            showSnackbar('Debe seleccionar un rango de fechas', 'warning');
+            return;
+        }
+
+        const hoy = dayjs().endOf('day');
+        const minAllowed = dayjs().subtract(2, 'month').startOf('day');
+
+        if (dateRange[0]?.isAfter(hoy) || dateRange[1]?.isAfter(hoy)) {
+            showSnackbar('Las fechas de sincronización no pueden ser posteriores a hoy', 'warning');
+            return;
+        }
+
+        if (dateRange[0]?.isBefore(minAllowed)) {
+            showSnackbar('No se pueden sincronizar fechas con más de 2 meses de antigüedad', 'warning');
+            return;
+        }
+
+        if (dateRange[0]?.isAfter(dateRange[1])) {
+            showSnackbar('La fecha de inicio no puede ser posterior a la fecha final', 'warning');
+            return;
+        }
+
         setSincronizando(true);
         try {
-            const { data } = await sincronizarBiometrico();
+            const { data } = await sincronizarBiometrico({ tipo, inicio, final });
             showSnackbar(data?.message || 'Sincronización completada', data?.ok ? 'success' : 'warning');
             // Tras sincronizar, invalida toda la caché y recarga la pestaña activa.
             cacheRef.current.clear();
             setCache(new Map(cacheRef.current));
             ensureData(tab);
         } catch (err) {
-            showSnackbar(err?.message || 'No se pudo sincronizar el dispositivo', 'error');
+            showSnackbar(err?.message || 'No se pudo sincronizar con Geovictoria', 'error');
         } finally {
             setSincronizando(false);
         }
-    }, [ensureData, tab, showSnackbar]);
+    }, [ensureData, tab, inicio, final, dateRange, showSnackbar]);
 
     return {
         // Pestañas y permisos

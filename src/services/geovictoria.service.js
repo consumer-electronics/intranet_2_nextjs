@@ -1,8 +1,8 @@
 // src/services/geovictoria.service.js
 
 const GEOVICTORIA_BASE_URL = 'https://customerapi.geovictoria.com/api/v1';
-const BATCH_SIZE = 150; // Límite de Geovictoria: máx 200 usuarios por solicitud
-const DELAY_BETWEEN_BATCHES_MS = 400; // Máximo 3 llamadas por segundo
+const BATCH_SIZE = 50; // Límite de Geovictoria: máx 200 usuarios por solicitud
+const DELAY_BETWEEN_BATCHES_MS = 500; // Máximo 3 llamadas por segundo
 
 /**
  * Pausa la ejecución por el tiempo indicado en milisegundos.

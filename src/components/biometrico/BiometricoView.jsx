@@ -457,6 +457,8 @@ export default function BiometricoView() {
                         columns={columns}
                         onRowClick={handleRowClick}
                         exportName={exportNameMain}
+                        initialSortField={tab === 'marcaciones' ? 'fecha' : 'nombre'}
+                        initialSortDirection="asc"
                     />
                 </Box>
 
@@ -506,6 +508,8 @@ export default function BiometricoView() {
                                 autoRowHeight
                                 columns={MODAL_COLUMNS}
                                 exportName={exportNameModal}
+                                initialSortField="fecha"
+                                initialSortDirection="asc"
                             />
                         )}
                     </DialogContent>

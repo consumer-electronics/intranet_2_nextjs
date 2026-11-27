@@ -99,6 +99,8 @@ const BiometricoTable = forwardRef(function BiometricoTable(
         onRowClick,
         exportName = 'control-biometrico',
         autoRowHeight = false,
+        initialSortField = 'fecha',
+        initialSortDirection = 'asc',
     },
     ref
 ) {
@@ -107,6 +109,9 @@ const BiometricoTable = forwardRef(function BiometricoTable(
     const [exporting, setExporting] = useState(false);
     const [filterModel, setFilterModel] = useState({ items: [], quickFilterValues: [] });
     const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+    const [sortModel, setSortModel] = useState([
+        { field: initialSortField, sort: initialSortDirection },
+    ]);
 
     /**
      * Descarga un archivo .xlsx respetando el orden y los filtros actuales
@@ -175,6 +180,10 @@ const BiometricoTable = forwardRef(function BiometricoTable(
         setPaginationModel((current) => ({ ...current, page: 0 }));
     }, [rows]);
 
+    useEffect(() => {
+        setSortModel([{ field: initialSortField, sort: initialSortDirection }]);
+    }, [initialSortField, initialSortDirection]);
+
     return (
         <Box
             sx={{
@@ -220,6 +229,8 @@ const BiometricoTable = forwardRef(function BiometricoTable(
                 paginationMode="client"
                 paginationModel={paginationModel}
                 onPaginationModelChange={(model) => setPaginationModel(model)}
+                sortModel={sortModel}
+                onSortModelChange={(model) => setSortModel(model)}
                 onRowClick={onRowClick ? (params) => onRowClick(params.row) : undefined}
                 getRowId={(row) =>
                     row.id ?? `biometrico-${row.idUsuario}-${row.nombre}-${row.fecha}-${row.hora}`
@@ -229,11 +240,6 @@ const BiometricoTable = forwardRef(function BiometricoTable(
                 density="compact"
                 disableRowSelectionOnClick
                 localeText={SPANISH_LOCALE}
-                initialState={{
-                    sorting: {
-                        sortModel: [{ field: 'fecha', sort: 'asc' }],
-                    },
-                }}
                 pageSizeOptions={[10, 25, 50]}
                 slots={{
                     // Solo el buscador rápido; el botón Excel queda en el padre
